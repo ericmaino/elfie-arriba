@@ -190,9 +190,9 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             }
         }
 
-        public Task<List<ItemIdentity>> GetItemsChangedBetweenAsync(DateTimeOffset start, DateTimeOffset end)
+        public Task<IList<ItemIdentity>> GetItemsChangedBetweenAsync(DateTimeOffset start, DateTimeOffset end)
         {
-            List<ItemIdentity> result = new List<ItemIdentity>();
+            IList<ItemIdentity> result = new List<ItemIdentity>();
 
             if (!this.Query.Contains("@Start") || !this.Query.Contains("@End")) throw new ArgumentException(String.Format("Query file '{0}' did not contain '@Start' and '@End' for the Crawler to request only a subset of items. Stopping.", this.Query));
 
@@ -227,7 +227,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             return Task.FromResult(result);
         }
 
-        private List<ItemIdentity> ExtractOneSet(string query, List<ItemIdentity> result)
+        private IList<ItemIdentity> ExtractOneSet(string query, IList<ItemIdentity> result)
         {
             Query q = new Query(this.Store, query, null, false);
 

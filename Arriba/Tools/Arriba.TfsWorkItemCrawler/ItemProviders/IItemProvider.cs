@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -23,7 +23,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
         /// <param name="start">Start of time range</param>
         /// <param name="end">End of time range</param>
         /// <returns>ItemIdentity [ID and ChangedDate] for all items changed within the range.</returns>
-        Task<List<ItemIdentity>> GetItemsChangedBetweenAsync(DateTimeOffset start, DateTimeOffset end);
+        Task<IList<ItemIdentity>> GetItemsChangedBetweenAsync(DateTimeOffset start, DateTimeOffset end);
 
         /// <summary>
         ///  Return the requested columns for the requested items in a DataBlock
