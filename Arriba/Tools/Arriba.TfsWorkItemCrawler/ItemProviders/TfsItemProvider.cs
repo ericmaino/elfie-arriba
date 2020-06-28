@@ -190,13 +190,13 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             }
         }
 
-        public List<ItemIdentity> GetItemsChangedBetween(DateTime start, DateTime end)
+        public List<ItemIdentity> GetItemsChangedBetween(DateTimeOffset start, DateTimeOffset end)
         {
             List<ItemIdentity> result = new List<ItemIdentity>();
 
             if (!this.Query.Contains("@Start") || !this.Query.Contains("@End")) throw new ArgumentException(String.Format("Query file '{0}' did not contain '@Start' and '@End' for the Crawler to request only a subset of items. Stopping.", this.Query));
 
-            DateTime lastLoaded = start;
+            DateTimeOffset lastLoaded = start;
             TimeSpan currentIntervalSize = end - start;
 
             while (lastLoaded < end)
@@ -206,7 +206,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                 if (currentIntervalSize > remainingInterval) currentIntervalSize = remainingInterval;
 
                 // Build a query for that range
-                DateTime nextToLoad = lastLoaded.Add(currentIntervalSize);
+                DateTimeOffset nextToLoad = lastLoaded.Add(currentIntervalSize);
                 string resolvedQuery = this.Query.Replace("@Start", lastLoaded.ToString("u")).Replace("@End", nextToLoad.ToString("u"));
 
                 if (ExtractOneSet(resolvedQuery, result) != null)

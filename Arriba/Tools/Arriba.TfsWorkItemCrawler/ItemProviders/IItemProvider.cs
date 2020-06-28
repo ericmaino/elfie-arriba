@@ -23,7 +23,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
         /// <param name="start">Start of time range</param>
         /// <param name="end">End of time range</param>
         /// <returns>ItemIdentity [ID and ChangedDate] for all items changed within the range.</returns>
-        List<ItemIdentity> GetItemsChangedBetween(DateTime start, DateTime end);
+        List<ItemIdentity> GetItemsChangedBetween(DateTimeOffset start, DateTimeOffset end);
 
         /// <summary>
         ///  Return the requested columns for the requested items in a DataBlock

@@ -32,14 +32,14 @@ namespace Arriba.TfsWorkItemCrawler
     {
         private string TableName { get; set; }
         private string ChangedDateColumn { get; set; }
-        private DateTime Start { get; set; }
-        private DateTime End { get; set; }
+        private DateTimeOffset Start { get; set; }
+        private DateTimeOffset End { get; set; }
 
         private Queue<string> RemainingCsvs { get; set; }
         private CsvReader CurrentCsvReader { get; set; }
         private IEnumerator<CsvRow> CurrentRowEnumerator { get; set; }
 
-        public CsvReaderItemProvider(string tableName, string changedDateColumn, DateTime start, DateTime end)
+        public CsvReaderItemProvider(string tableName, string changedDateColumn, DateTimeOffset start, DateTimeOffset end)
         {
             start = start.ToUniversalTime();
             end = end.ToUniversalTime();
@@ -117,7 +117,7 @@ namespace Arriba.TfsWorkItemCrawler
         /// <param name="start">StartDate from which to include</param>
         /// <param name="end">EndDate before which to include</param>
         /// <returns>List of CsvPaths which contain all items between start and end</returns>
-        private List<string> FindCsvsBetween(DateTime start, DateTime end)
+        private List<string> FindCsvsBetween(DateTimeOffset start, DateTimeOffset end)
         {
             List<string> result = new List<string>();
 

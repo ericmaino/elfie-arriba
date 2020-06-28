@@ -8,9 +8,10 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
     public class ItemIdentity
     {
         public int ID { get; set; }
-        public DateTime ChangedDate { get; set; }
 
-        public ItemIdentity(int id, DateTime changedDate)
+        public DateTimeOffset ChangedDate { get; set; }
+
+        public ItemIdentity(int id, DateTimeOffset changedDate)
         {
             this.ID = id;
             this.ChangedDate = changedDate;

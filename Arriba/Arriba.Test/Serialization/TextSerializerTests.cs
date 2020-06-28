@@ -20,10 +20,10 @@ namespace Arriba.Test.Serialization
         public void TextSerializer_DateTime()
         {
             // Verify regular round trip
-            DateTime now = DateTime.Now;
+            DateTimeOffset now = DateTimeOffset.Now;
             TextSerializer.Write(now, "Sample.txt");
-            DateTime roundTripped = TextSerializer.ReadDateTime("Sample.txt", DateTime.MinValue);
-            Assert.AreEqual(now.Ticks, roundTripped.Ticks);
+            DateTimeOffset roundTripped = TextSerializer.ReadDateTime("Sample.txt", DateTimeOffset.MinValue);
+            Assert.AreEqual(now.UtcTicks, roundTripped.UtcTicks);
 
             // Verify default returned for missing files
             Assert.AreEqual(DateTime.MinValue.Ticks, TextSerializer.ReadDateTime("Missing.txt", DateTime.MinValue).Ticks);

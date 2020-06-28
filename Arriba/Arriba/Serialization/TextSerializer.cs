@@ -19,11 +19,11 @@ namespace Arriba.Serialization
         /// <param name="path">DiskCache relative path to read</param>
         /// <param name="defaultValue">Default if file not found or not DateTime</param>
         /// <returns>Value read, if possible, or default value</returns>
-        public static DateTime ReadDateTime(string path, DateTime defaultValue)
+        public static DateTimeOffset ReadDateTime(string path, DateTimeOffset defaultValue)
         {
-            DateTime result;
+            DateTimeOffset result;
             StringSerializer s = new StringSerializer();
-            if (!s.TryRead(path) || !DateTime.TryParse(s.Value, out result))
+            if (!s.TryRead(path) || !DateTimeOffset.TryParse(s.Value, out result))
             {
                 return defaultValue;
             }
@@ -49,7 +49,7 @@ namespace Arriba.Serialization
         /// </summary>
         /// <param name="value">Value to write</param>
         /// <param name="path">DiskCache relative path at which to write</param>
-        public static void Write(DateTime value, string path)
+        public static void Write(DateTimeOffset value, string path)
         {
             StringSerializer s = new StringSerializer(value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
             s.Write(path);

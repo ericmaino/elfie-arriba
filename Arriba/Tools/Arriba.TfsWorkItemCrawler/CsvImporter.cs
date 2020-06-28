@@ -28,7 +28,7 @@ namespace Arriba.TfsWorkItemCrawler
 
         public void Import(IItemConsumer consumer)
         {
-            DateTime lastCutoffWritten = ItemProviderUtilities.LoadLastCutoff(this.Configuration.ArribaTable, this.ConfigurationName + ".CSV", false);
+            DateTimeOffset lastCutoffWritten = ItemProviderUtilities.LoadLastCutoff(this.Configuration.ArribaTable, this.ConfigurationName + ".CSV", false);
             Stopwatch saveWatch = null;
 
             CsvReaderItemProvider provider = null;
@@ -73,7 +73,7 @@ namespace Arriba.TfsWorkItemCrawler
             }
         }
 
-        private void Save(IItemConsumer consumer, DateTime lastCutoffWritten)
+        private void Save(IItemConsumer consumer, DateTimeOffset lastCutoffWritten)
         {
             Trace.WriteLine("Saving...");
             consumer.Save();

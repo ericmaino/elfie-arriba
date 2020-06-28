@@ -29,7 +29,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
         }
 
         public const string CutoffLocationFormatString = @"Tables\{0}\Cutoff.{1}.txt";
-        public static DateTime LoadLastCutoff(string tableName, string configurationName, bool rebuild)
+        public static DateTimeOffset LoadLastCutoff(string tableName, string configurationName, bool rebuild)
         {
             if (String.IsNullOrEmpty(tableName))
             {
@@ -41,8 +41,8 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                 throw new ArgumentException("configurationName is null or empty.", "configurationName");
             }
 
-            DateTime allItemsCutoff = DateTime.UtcNow.AddYears(-20);
-            DateTime cutoff;
+            DateTimeOffset allItemsCutoff = DateTimeOffset.UtcNow.AddYears(-20);
+            DateTimeOffset cutoff;
 
             if (rebuild)
             {
@@ -56,7 +56,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             return cutoff;
         }
 
-        public static void SaveLastCutoff(string tableName, string configurationName, DateTime cutoff)
+        public static void SaveLastCutoff(string tableName, string configurationName, DateTimeOffset cutoff)
         {
             // Write the new cutoff as long as it's not still the default one
             if (cutoff.Year > (DateTime.UtcNow.Year - 19))

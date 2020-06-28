@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -48,7 +48,7 @@ namespace Arriba.TfsWorkItemCrawler
 
             int exceptionCount = 0;
             int itemCount = 0;
-            DateTime lastChangedItemAppended = DateTime.MinValue;
+            DateTimeOffset lastChangedItemAppended = DateTimeOffset.MinValue;
             Stopwatch readWatch = new Stopwatch();
             Stopwatch writeWatch = new Stopwatch();
             Stopwatch saveWatch = new Stopwatch();
@@ -56,8 +56,8 @@ namespace Arriba.TfsWorkItemCrawler
 
             try
             {
-                DateTime previousLastChangedItem = ItemProviderUtilities.LoadLastCutoff(this.Configuration.ArribaTable, this.ConfigurationName, this.Rebuild);
-                DateTime now = DateTime.UtcNow;
+                DateTimeOffset previousLastChangedItem = ItemProviderUtilities.LoadLastCutoff(this.Configuration.ArribaTable, this.ConfigurationName, this.Rebuild);
+                DateTimeOffset now = DateTimeOffset.UtcNow;
                 lastChangedItemAppended = previousLastChangedItem;
 
                 Trace.WriteLine(string.Format("Last Updated item was updated at '{0}'...", previousLastChangedItem));
@@ -65,8 +65,8 @@ namespace Arriba.TfsWorkItemCrawler
                 // For clean crawl, get more than a day at a time until first items found
                 int intervalDays = ((now - previousLastChangedItem).TotalDays > 365 ? 365 : 1);
 
-                DateTime end;
-                for (DateTime start = previousLastChangedItem; start <= now; start = end)
+                DateTimeOffset end;
+                for (DateTimeOffset start = previousLastChangedItem; start <= now; start = end)
                 {
                     end = start.AddDays(intervalDays);
 
@@ -136,7 +136,7 @@ namespace Arriba.TfsWorkItemCrawler
                                     itemCount += blocks[relativeIndex].RowCount;
 
                                     // Track last changed date written
-                                    DateTime latestCutoffInGroup = pages[nextPageIndex + relativeIndex].Max(ii => ii.ChangedDate);
+                                    DateTimeOffset latestCutoffInGroup = pages[nextPageIndex + relativeIndex].Max(ii => ii.ChangedDate);
                                     if (latestCutoffInGroup > lastChangedItemAppended)
                                     {
                                         lastChangedItemAppended = latestCutoffInGroup;
@@ -208,7 +208,7 @@ namespace Arriba.TfsWorkItemCrawler
             }
         }
 
-        private void Save(IItemConsumer consumer, Stopwatch saveWatch, DateTime lastCutoffWritten)
+        private void Save(IItemConsumer consumer, Stopwatch saveWatch, DateTimeOffset lastCutoffWritten)
         {
             // Save the data itself
             Trace.WriteLine("Saving...");
