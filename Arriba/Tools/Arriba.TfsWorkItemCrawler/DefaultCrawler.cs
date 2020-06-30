@@ -186,6 +186,7 @@ namespace Arriba.TfsWorkItemCrawler
                         }
                     }
 
+                    end = itemsToGet.Max(x => x.ChangedDate).AddSeconds(1);
                     Console.WriteLine();
                 }
             }
