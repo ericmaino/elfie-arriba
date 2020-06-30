@@ -12,7 +12,7 @@ namespace Microsoft.CodeAnalysis.Elfie.Serialization
     /// <summary>
     ///  DataReaderTabularReader maps an IDataReader to an ITabularReader.
     ///  It allows reading value type values without allocation.
-    ///  
+    ///
     ///  NOTE: The ITabularValues returned from Current(index) are only valid until NextRow is called.
     ///  They must be copied or used before the next row is read.
     /// </summary>
