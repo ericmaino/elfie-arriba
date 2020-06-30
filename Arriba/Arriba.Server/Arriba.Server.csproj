@@ -1,30 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
     <Import Project="..\Arriba.build.props" />
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <RootNamespace>Arriba.Server</RootNamespace>
         <AssemblyName>Arriba.Server</AssemblyName>
         <Prefer32Bit>false</Prefer32Bit>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <OutputPath>..\bin\Debug</OutputPath>
+    </PropertyGroup>
+
     <ItemGroup>
         <None Include="App.config">
-            <SubType>Designer</SubType>
-        </None>
-        <None Include="packages.config">
             <SubType>Designer</SubType>
         </None>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-        <PackageReference Include="Microsoft.Owin" Version="4.1.0" />
-        <PackageReference Include="Microsoft.Owin.Host.HttpListener" Version="4.1.0" />
-        <PackageReference Include="Microsoft.Owin.Hosting" Version="4.1.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+        <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
         <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
     </ItemGroup>
     <ItemGroup>

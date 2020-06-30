@@ -12,7 +12,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.Client", "Arriba.Cli
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.Communication", "Arriba.Communication\Arriba.Communication.csproj", "{7DCFE5A1-CDBF-426F-BD57-225443651238}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arriba.ConsoleTest", "Arriba.ConsoleTest\Arriba.ConsoleTest.csproj", "{2851AE4B-E57F-4777-951E-253F0EC4EF67}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.ConsoleTest", "Arriba.ConsoleTest\Arriba.ConsoleTest.csproj", "{2851AE4B-E57F-4777-951E-253F0EC4EF67}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.Query", "Arriba.Query\Arriba.Query.csproj", "{E4D3AB4B-B37E-42A5-A718-33B419EA0170}"
 EndProject
@@ -20,24 +20,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.Server", "Arriba.Ser
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.Test", "Arriba.Test\Arriba.Test.csproj", "{2451F923-391D-4C16-87D0-32FCDB451998}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{142F4F42-5123-41B6-A783-A07C94A87DE9}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.ClientExample", "Arriba.ClientExample\Arriba.ClientExample.csproj", "{8BADA412-2BD0-4026-8319-DAF8E288DE3F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.Csv", "Tools\Arriba.Csv\Arriba.Csv.csproj", "{D264AFC1-C7D7-4585-9FCD-92BED4CD0D28}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arriba.IIS", "Arriba.IIS\Arriba.IIS.csproj", "{069A2B95-DBF0-42EF-B7E4-CE840DD3B76C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.IIS", "Arriba.IIS\Arriba.IIS.csproj", "{069A2B95-DBF0-42EF-B7E4-CE840DD3B76C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arriba.TfsWorkItemCrawler", "Tools\Arriba.TfsWorkItemCrawler\Arriba.TfsWorkItemCrawler.csproj", "{FA9A437A-4299-4645-957D-EEABB17396C5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elfie", "..\Elfie\Elfie\Elfie.csproj", "{D45F339F-847A-4F3A-88A0-AFB883E9920E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arriba.WorkItemCrawler", "Tools\Arriba.WorkItemCrawler\Arriba.WorkItemCrawler.csproj", "{20CB1373-01F1-41EF-8A3E-07450C6FFB1E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arriba.WorkItemCrawler", "Tools\Arriba.WorkItemCrawler\Arriba.WorkItemCrawler.csproj", "{20CB1373-01F1-41EF-8A3E-07450C6FFB1E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

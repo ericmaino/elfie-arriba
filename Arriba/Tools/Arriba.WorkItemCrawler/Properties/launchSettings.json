@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Arriba.WorkItemCrawler": {
+      "commandName": "Project",
+      "commandLineArgs": "CSEng -r"
+    }
+  }
+}

@@ -42,18 +42,12 @@ namespace Arriba.TfsWorkItemCrawler
 
                     // Load the Configuration [up two or three folders, for Databases\<configurationName>\config.json
                     string thisExePath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-                    string configJsonPath = Path.Combine(thisExePath, @"..\..\Databases", configurationName, "config.json");
-                    if (!File.Exists(configJsonPath)) configJsonPath = Path.Combine(thisExePath, @"..\..\..\Databases", configurationName, "config.json");
+                    string configJsonPath = Path.Combine(thisExePath, @"..\..\..\Databases", configurationName, "config.json");
+                    if (!File.Exists(configJsonPath)) configJsonPath = Path.Combine(thisExePath, @"..\..\..\..\Databases", configurationName, "config.json");
                     string configJson = File.ReadAllText(configJsonPath);
 
                     CrawlerConfiguration config = JsonConvert.DeserializeObject<CrawlerConfiguration>(configJson);
                     config.ConfigurationName = configurationName;
-
-                    // Password storage mode
-                    if (mode.Equals("-password", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return TfsItemProvider.EncryptPassword(config);
-                    }
 
                     // Build the item consumer
                     IItemConsumer consumer = ItemConsumerUtilities.Build(config);
