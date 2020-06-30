@@ -9,7 +9,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-
+using System.Threading.Tasks;
 using Arriba.Extensions;
 using Arriba.Model.Column;
 using Arriba.Structures;
@@ -142,9 +142,9 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
         #endregion
 
         #region IItemProvider
-        public IList<ColumnDetails> GetColumns()
+        public Task<IList<ColumnDetails>> GetColumnsAsync()
         {
-            List<ColumnDetails> columns = new List<ColumnDetails>();
+            IList<ColumnDetails> columns = new List<ColumnDetails>();
 
             // Add columns from schema
             foreach (FieldDefinition column in this.Store.FieldDefinitions)
@@ -164,7 +164,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                 this.Columns[column.Name] = column;
             }
 
-            return columns;
+            return Task.FromResult(columns);
         }
 
         private static string MapType(FieldDefinition column)
@@ -190,7 +190,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             }
         }
 
-        public List<ItemIdentity> GetItemsChangedBetween(DateTimeOffset start, DateTimeOffset end)
+        public Task<List<ItemIdentity>> GetItemsChangedBetweenAsync(DateTimeOffset start, DateTimeOffset end)
         {
             List<ItemIdentity> result = new List<ItemIdentity>();
 
@@ -224,7 +224,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                 }
             }
 
-            return result;
+            return Task.FromResult(result);
         }
 
         private List<ItemIdentity> ExtractOneSet(string query, List<ItemIdentity> result)
@@ -273,7 +273,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             return result;
         }
 
-        public DataBlock GetItemBlock(IEnumerable<ItemIdentity> items, IEnumerable<string> columnNames)
+        public Task<DataBlock> GetItemBlockAsync(IEnumerable<ItemIdentity> items, IEnumerable<string> columnNames)
         {
             // Build a query for them
             string query = String.Format("SELECT [System.Id] FROM WorkItems WHERE [System.Id] IN ({0})", String.Join(", ", items.Select((ii) => ii.ID)));
@@ -328,7 +328,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                 }
             }
 
-            return result;
+            return Task.FromResult(result);
         }
         #endregion
 

@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-
+using System.Threading.Tasks;
 using Arriba.Model.Column;
 using Arriba.TfsWorkItemCrawler.ItemConsumers;
 using Arriba.TfsWorkItemCrawler.ItemProviders;
@@ -18,7 +18,7 @@ namespace Arriba.TfsWorkItemCrawler
 {
     internal class Program
     {
-        private static int Main(string[] args)
+        private static async Task<int> Main(string[] args)
         {
             if (args.Length < 2)
             {
@@ -62,7 +62,7 @@ namespace Arriba.TfsWorkItemCrawler
                     IItemProvider provider = ItemProviderUtilities.Build(config);
 
                     // Determine the list of columns to crawl
-                    IEnumerable<ColumnDetails> columns = provider.GetColumns();
+                    IEnumerable<ColumnDetails> columns = await provider.GetColumnsAsync();
                     if (config.ColumnsToInclude.Count > 0) columns = columns.Where(cd => config.ColumnsToInclude.Contains(cd.Name));
                     if (config.ColumnsToExclude.Count > 0) columns = columns.Where(cd => !config.ColumnsToExclude.Contains(cd.Name));
                     List<ColumnDetails> columnsToAdd = new List<ColumnDetails>(columns);
@@ -72,7 +72,7 @@ namespace Arriba.TfsWorkItemCrawler
 
                     // Build a crawler and crawl the items in restartable order
                     DefaultCrawler crawler = new DefaultCrawler(config, columnsToAdd.Select((cd) => cd.Name), configurationName, !mode.Equals("-i"));
-                    crawler.Crawl(provider, consumer);
+                    await crawler.Crawl(provider, consumer);
 
                     return 0;
                 }

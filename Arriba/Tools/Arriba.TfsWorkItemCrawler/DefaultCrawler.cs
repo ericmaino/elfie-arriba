@@ -1,7 +1,8 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -41,7 +42,7 @@ namespace Arriba.TfsWorkItemCrawler
             this.ColumnNames = columnNames;
         }
 
-        public void Crawl(IItemProvider provider, IItemConsumer consumer)
+        public async Task Crawl(IItemProvider provider, IItemConsumer consumer)
         {
             ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = CrawlMaxParallelism };
             object locker = new object();
@@ -73,7 +74,7 @@ namespace Arriba.TfsWorkItemCrawler
                     // Find the set of items to retrieve
                     Trace.WriteLine(string.Format("Identifying items changed between '{0}' and '{1}'...", start, end));
                     IList<ItemIdentity> itemsToGet = null;
-                    itemsToGet = provider.GetItemsChangedBetween(start, end);
+                    itemsToGet = await provider.GetItemsChangedBetweenAsync(start, end);
 
                     // If few or no items are returned, crawl by week. If many, by day
                     if (itemsToGet != null && itemsToGet.Count > 1000)
@@ -105,21 +106,29 @@ namespace Arriba.TfsWorkItemCrawler
                             // Get items in parallel
                             readWatch.Start();
                             DataBlock[] blocks = new DataBlock[pageCountThisIteration];
-                            Parallel.For(0, pageCountThisIteration, (relativeIndex) =>
+
+                            var tasks = new ConcurrentBag<Task>();
+                            var result = Parallel.For(0, pageCountThisIteration, (relativeIndex) =>
                             {
-                                try
+                                var task = Task.Run(async () =>
                                 {
-                                    // Read the next page of items
-                                    Console.Write("[");
-                                    blocks[relativeIndex] = provider.GetItemBlock(pages[nextPageIndex + relativeIndex], this.ColumnNames);
-                                }
-                                catch (Exception e)
-                                {
-                                    exceptionCount++;
-                                    Trace.WriteLine(string.Format("Exception when fetching {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), String.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
-                                    if (exceptionCount > 10) throw;
-                                }
+                                    try
+                                    {
+                                        // Read the next page of items
+                                        Console.Write("[");
+                                        blocks[relativeIndex] = await provider.GetItemBlockAsync(pages[nextPageIndex + relativeIndex], this.ColumnNames);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        exceptionCount++;
+                                        Trace.WriteLine(string.Format("Exception when fetching {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), String.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
+                                        if (exceptionCount > 10) throw;
+                                    }
+                                });
+                                tasks.Add(task);
                             });
+
+                            await Task.WhenAll(tasks);
                             readWatch.Stop();
 
                             // Append items serially
