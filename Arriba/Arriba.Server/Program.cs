@@ -8,6 +8,7 @@ using Arriba.Server.Owin;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
@@ -61,6 +62,12 @@ namespace Arriba.Server
             // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
             public void ConfigureServices(IServiceCollection services)
             {
+                // TODO: Remove this setting and fix locations where sync IO happens
+                services.Configure<KestrelServerOptions>(options =>
+                {
+                    options.AllowSynchronousIO = true;
+                });
+
                 services.AddCors(cors =>
                 {
                     cors.AddDefaultPolicy(builder =>
@@ -151,6 +158,8 @@ namespace Arriba.Server
 
                     if (writeException != null)
                     {
+                        if (!context.Response.HasStarted)
+                        {
                         context.Response.StatusCode = 500;
 
                         if (responseBody.CanWrite)
@@ -162,6 +171,7 @@ namespace Arriba.Server
                             }
                         }
                     }
+                }
                 }
 
                 response.Dispose();

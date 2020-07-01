@@ -1,9 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -50,7 +51,7 @@ namespace Arriba.Communication.ContentTypes
 
         async Task IContentWriter.WriteAsync(IRequest request, Stream output, object content)
         {
-            using (StreamWriter writer = new StreamWriter(output))
+            using (StreamWriter writer = new StreamWriter(output, Encoding.UTF8, bufferSize: -1, leaveOpen: true))
             {
                 await WriteAsyncCore(writer, content);
             }
