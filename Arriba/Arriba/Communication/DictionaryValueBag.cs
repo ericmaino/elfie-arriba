@@ -10,7 +10,7 @@ using Arriba.Communication;
 
 namespace Arriba.Server
 {
-    internal class DictionaryValueBag : IWritableValueBag
+    public class DictionaryValueBag : IWritableValueBag
     {
         private IDictionary<string, string[]> _dictionary;
 
@@ -18,6 +18,7 @@ namespace Arriba.Server
         {
             _dictionary = dictionary;
         }
+
         public void Add(string key, string value)
         {
             string[] original;
