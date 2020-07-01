@@ -1,8 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Arriba.Communication;
 using Arriba.Monitoring;
 using Arriba.Server.Hosting;
+using Arriba.Server.Owin;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +14,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
 using AspNetHost = Microsoft.Extensions.Hosting.Host;
 
 namespace Arriba.Server
@@ -57,6 +61,7 @@ namespace Arriba.Server
             // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
             public void ConfigureServices(IServiceCollection services)
             {
+                services.AddControllers();
             }
 
             // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -67,23 +72,88 @@ namespace Arriba.Server
                     app.UseDeveloperExceptionPage();
                 }
 
+                app.UseRouting();
+                app.UseEndpoints(endpoints =>
+                {
+                    endpoints.MapControllers();
+                    endpoints.MapFallback(HandleArribaRequest);
+                });
+            }
+
+            private async Task HandleArribaRequest(HttpContext context)
+            {
                 var host = new Arriba.Server.Hosting.Host();
                 host.Add<JsonConverter>(new StringEnumConverter());
                 host.Compose();
 
                 var server = host.GetService<ComposedApplicationServer>();
+                    var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
+                    var response = await server.HandleAsync(request, false);
+                    await Write(request, response, server.ReaderWriter, context);
+            }
 
-                app.Run(async context =>
+            private async Task Write(ArribaHttpContextRequest request, IResponse response, IContentReaderWriterService readerWriter, HttpContext context)
+            {
+                var responseHeaders = context.Response.Headers;
+                var responseBody = context.Response.Body;
+
+                // Status Code
+                //environment["owin.ResponseStatusCode"] = ResponseStatusToHttpStatusCode(response);
+
+                // For stream responses we just write the content directly back to the context 
+                IStreamWriterResponse streamedResponse = response as IStreamWriterResponse;
+
+                if (streamedResponse != null)
                 {
-                    server.HandleAsync(context.R)
-                })
-                app.UseEndpoints(endpoints =>
+                    responseHeaders["Content-Type"] = new[] { streamedResponse.ContentType };
+                    await streamedResponse.WriteToStreamAsync(responseBody);
+                }
+                else if (response.ResponseBody != null)
                 {
-                    endpoints.MapGet("/", async context =>
+                    // Default to application/json output
+                    const string DefaultContentType = "application/json";
+
+                    string accept;
+                    if (!request.Headers.TryGetValue("Accept", out accept))
                     {
-                        await context.Response.WriteAsync("Hello World!");
-                    });
-                });
+                        accept = DefaultContentType;
+                    }
+
+                    // Split and clean the accept header and prefer output content types requested by the client,
+                    // always falls back to json if no match is found. 
+                    //IEnumerable<string> contentTypes = accept.Split(';').Where(a => a != "*/*");
+                    var writer = readerWriter.GetWriter(DefaultContentType, response.ResponseBody);
+
+                    // NOTE: One must set the content type *before* writing to the output stream. 
+                    responseHeaders["Content-Type"] = new[] { writer.ContentType };
+
+                    Exception writeException = null;
+
+                    try
+                    {
+                        await writer.WriteAsync(request, responseBody, response.ResponseBody);
+                    }
+                    catch (Exception e)
+                    {
+                        writeException = e;
+                    }
+
+                    if (writeException != null)
+                    {
+                        context.Response.StatusCode = 500;
+
+                        if (responseBody.CanWrite)
+                        {
+                            using (var failureWriter = new StreamWriter(responseBody))
+                            {
+                                var message = String.Format("ERROR: Content writer {0} for content type {1} failed with exception {2}", writer.GetType(), writer.ContentType, writeException.GetType().Name);
+                                await failureWriter.WriteAsync(message);
+                            }
+                        }
+                    }
+                }
+
+                response.Dispose();
             }
         }
     }
