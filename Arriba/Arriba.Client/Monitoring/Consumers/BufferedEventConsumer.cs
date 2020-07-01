@@ -9,7 +9,13 @@ namespace Arriba.Monitoring
 {
     public abstract class BufferedEventConsumer : IMonitorEventConsumer
     {
-        public event EventHandler OnNotifyLevelChange;
+        // This class must implement the interface, but does not raise the event.  Follow advice here to avoid warning:
+        // https://docs.microsoft.com/en-us/archive/blogs/trevor/c-warning-cs0067-the-event-event-is-never-used
+        public event EventHandler OnNotifyLevelChange
+        {
+            add { }
+            remove { }
+        }
 
         private BufferBlock<MonitorEventEntry> _buffer;
         private ActionBlock<MonitorEventEntry> _action;
