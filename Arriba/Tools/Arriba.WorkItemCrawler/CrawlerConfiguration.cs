@@ -63,7 +63,7 @@ namespace Arriba.TfsWorkItemCrawler
         public List<string> ColumnsToExclude { get; set; }
 
         /// <summary>
-        ///  Name of IItemProvider to use for crawl. [TfsItemProvider]
+        ///  Name of IItemProvider to use for crawl. [TfsItemProvider,Azdo]
         /// </summary>
         public string ItemProvider { get; set; }
 
@@ -76,6 +76,21 @@ namespace Arriba.TfsWorkItemCrawler
         ///  Name/Url of source database. [https://projectName.visualstudio.com]
         /// </summary>
         public string ItemDatabaseName { get; set; }
+
+        /// <summary>
+        ///  Guid of the project to connect to
+        /// </summary>
+        public string ItemProject { get; set; }
+
+        /// <summary>
+        ///  Personal Access Token
+        /// </summary>
+        public string AzPat { get; set; }
+
+        /// <summary>
+        ///  Personal Access Token
+        /// </summary>
+        public IList<string> WorkItemTypes { get; set; }
 
         /// <summary>
         ///  WIQL Query for items to index. If not provided, all items are retrieved.
@@ -145,6 +160,7 @@ namespace Arriba.TfsWorkItemCrawler
             }
 
             return result;
+            
         }
 
         private static SecurityIdentity ParseIdentity(string identity)
