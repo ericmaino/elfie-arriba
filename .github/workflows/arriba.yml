@@ -10,14 +10,14 @@ jobs:
       - uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 3.1.100
-      - name: Build Arriba.Core.sln Release
-        run: dotnet build ./Arriba/Arriba.Core.sln --configuration Release
-      - name: Test Arriba.Core.sln Release
-        run: dotnet test Arriba/Arriba.Core.sln --configuration Release -- CollectCoverage=true -- CoverletOutput=TestResults/ -- CoverletOutputFormat=lcov
+      - name: Build ./src/Arriba.Core.sln Release
+        run: dotnet build ./src/Arriba/Arriba.Core.sln --configuration Release
+      - name: Test ./src/Arriba.Core.sln Release
+        run: dotnet test ./src/Arriba/Arriba.Core.sln --configuration Release -- CollectCoverage=true -- CoverletOutput=TestResults/ -- CoverletOutputFormat=lcov
       - name: Publish Arriba.Core.sln Release to Arriba/bin
-        run: dotnet build Arriba/Arriba.Core.sln --configuration Release --output Arriba/bin
+        run: dotnet build ./src/Arriba/Arriba.Core.sln --configuration Release --output Arriba/bin
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: Arriba
-          path: Arriba/bin
+          path: ./src/Arriba/bin
