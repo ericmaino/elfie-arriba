@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
@@ -38,7 +37,7 @@ namespace Arriba.Server
 
 
             var configLoader = new ArribaConfigurationLoader(args);
-            
+
 
             // Write trace messages to console if /trace is specified 
             if (configLoader.GetBoolValue("trace", Debugger.IsAttached))
@@ -86,28 +85,32 @@ namespace Arriba.Server
                 {
                     cors.AddDefaultPolicy(builder =>
                                             {
-                                                builder.WithOrigins(new[] { "http://localhost:8080" })
+                                                builder.WithOrigins(new[] { serverConfig.FrontendBaseUrl })
                                                     .AllowAnyMethod()
                                                     .AllowCredentials()
                                                     .AllowAnyHeader();
                                             });
                 });
 
-                var azureTokens = AzureJwtTokenFactory.CreateAsync(serverConfig.OAuthConfig).Result;
-                services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                    .AddJwtBearer(azureTokens.Configure);
-
-                var jwtBearerPolicy = new AuthorizationPolicyBuilder()
-                   .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                   .RequireAuthenticatedUser()
-                   .Build();
-
-                services.AddAuthorization(auth =>
+                if (serverConfig.EnabledAuthentication)
                 {
-                    auth.DefaultPolicy = jwtBearerPolicy;
-                });
+                    var azureTokens = AzureJwtTokenFactory.CreateAsync(serverConfig.OAuthConfig).Result;
+                    services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                        .AddJwtBearer(azureTokens.Configure);
 
-                services.AddSingleton<IOAuthConfig>( (_) => serverConfig.OAuthConfig);
+                    var jwtBearerPolicy = new AuthorizationPolicyBuilder()
+                       .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                       .RequireAuthenticatedUser()
+                       .Build();
+
+                    services.AddAuthorization(auth =>
+                    {
+                        auth.DefaultPolicy = jwtBearerPolicy;
+                    });
+                }
+
+                services.AddSingleton<IArribaServerConfiguration>((_) => serverConfig);
+                services.AddSingleton((_) => serverConfig.OAuthConfig);
                 services.AddControllers();
             }
 
@@ -121,11 +124,15 @@ namespace Arriba.Server
 
                 app.UseRouting();
                 app.UseCors();
-                app.UseAuthorization();
+                
+                if (serverConfig.EnabledAuthentication)
+                    app.UseAuthorization();
                 app.UseEndpoints(endpoints =>
                 {
                     endpoints.MapControllers();
-                    endpoints.MapFallback(HandleArribaRequest).RequireAuthorization();
+                    var fallback = endpoints.MapFallback(HandleArribaRequest);
+                    if (serverConfig.EnabledAuthentication)
+                        fallback.RequireAuthorization();
                 });
             }
 
