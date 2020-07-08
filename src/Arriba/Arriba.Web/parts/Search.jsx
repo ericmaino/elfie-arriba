@@ -15,7 +15,7 @@ import ResultDetails from "./ResultDetails";
 import AddColumnList from "./AddColumnList";
 import ResultListing from "./ResultListing";
 
-import createDOMPurify  from "DOMPurify";
+import createDOMPurify  from "dompurify";
 const DOMPurify = createDOMPurify(window); // Consider lazy instantiation.
 
 window.configuration = require("../configuration/Configuration.jsx").default;

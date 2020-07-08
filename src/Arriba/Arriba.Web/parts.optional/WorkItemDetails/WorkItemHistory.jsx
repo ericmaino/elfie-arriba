@@ -1,6 +1,6 @@
 import "./WorkItemHistory.scss";
 
-import createDOMPurify  from "DOMPurify";
+import createDOMPurify  from "dompurify";
 const DOMPurify = createDOMPurify(window);
 
 // Render Work Item history from a JSON object

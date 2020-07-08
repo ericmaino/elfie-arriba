@@ -4,7 +4,7 @@ import EventedComponent from "./EventedComponent";
 ﻿import AddColumnList from "./AddColumnList";
 import Delete from "./Delete"
 
-import createDOMPurify  from "DOMPurify";
+import createDOMPurify  from "dompurify";
 const DOMPurify = createDOMPurify(window);
 
 // ResultListing shows a table of items matching a query, with sortable columns

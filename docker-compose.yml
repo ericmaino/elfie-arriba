@@ -1,0 +1,38 @@
+version: '3'
+volumes:
+  arriba:
+
+services:
+  base:
+    image: arriba-base
+    build: 
+      context: ./src
+      dockerfile: Dockerfile
+  crawler:
+    build: 
+      context: .docker/Crawler
+      dockerfile: Dockerfile
+    depends_on:
+      - base
+    volumes:
+      - arriba:/Arriba/DiskCache
+    environment:
+      ARRIBA__AZPAT: ${AZPAT}
+  server:
+    build: 
+      context: .docker/Server
+      dockerfile: Dockerfile
+    depends_on:
+      - base
+    volumes:
+      - arriba:/Arriba/DiskCache
+    environment:
+      ARRIBASERVER__OAUTHCONFIG__APPSECRET: ${APPSECRET}
+  web:
+    build: 
+      context: .docker/WebUI
+      dockerfile: Dockerfile
+    depends_on:
+      - base
+    ports:
+      - 8080:80
