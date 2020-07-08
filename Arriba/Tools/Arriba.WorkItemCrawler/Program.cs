@@ -43,7 +43,12 @@ namespace Arriba.TfsWorkItemCrawler
                         return -2;
                     }
 
-                    configLoader.AddJsonSource(GetJsonPath(configurationName));
+                    var databaseConfig = GetJsonPath(configurationName);
+                    if (!string.IsNullOrEmpty(databaseConfig))
+                    {
+                        configLoader.AddJsonSource(databaseConfig);
+                    }
+
                     var config = configLoader.Bind<CrawlerConfiguration>("Arriba");
 
                     // Build the item consumer

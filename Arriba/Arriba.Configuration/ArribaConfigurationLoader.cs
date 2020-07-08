@@ -41,6 +41,7 @@ namespace Arriba.Configuration
             configurationBuilder.SetBasePath(basePath);
 
             configuration = configurationBuilder.AddJsonFile("appsettings.json", true)
+                .AddJsonFile($"appsettings.local.json", true)
                 .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true)
                 .AddEnvironmentVariables()
                 .AddCommandLine(args)

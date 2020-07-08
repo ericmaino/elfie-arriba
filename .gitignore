@@ -246,3 +246,6 @@ extensions.jsx
 
 # Skipping package-locks temporarily.
 package-lock.json
+
+# Skip local settings
+appsettings.local.json
