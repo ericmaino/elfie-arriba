@@ -181,6 +181,8 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
         {
             if (column.Name == "Attachments" || column.Name == "Links") return "json";
 
+            if (column.Name == "Tags") return "stringset";
+
             switch (column.Type.ToLowerInvariant())
             {
                 case "boolean":
