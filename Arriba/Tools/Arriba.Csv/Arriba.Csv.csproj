@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="..\..\Arriba.build.props" />
 
@@ -17,6 +17,7 @@
             <Project>{35e3e90c-f12e-4eb5-9161-a78ed5ca950f}</Project>
             <Name>Arriba.Client</Name>
         </ProjectReference>
+        <ProjectReference Include="..\..\Arriba.Configuration\Arriba.Configuration.csproj" />
         <ProjectReference Include="..\..\Arriba\Arriba.csproj">
             <Project>{d89b4a01-f637-4147-9737-91a327a9da3f}</Project>
             <Name>Arriba</Name>
