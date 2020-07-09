@@ -773,10 +773,12 @@ namespace Arriba.Model
             {
                 if (partitionFile.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
                 {
+                    Trace.Write($"Found Table {tableName}");
                     return true;
                 }
             }
 
+            Trace.Write($"Cannot Find Table {tableName}");
             return false;
         }
 

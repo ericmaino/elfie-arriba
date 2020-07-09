@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Arriba.Communication;
@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
@@ -47,6 +48,8 @@ namespace Arriba.Server
 
             // Always log to CSV
             EventPublisher.AddConsumer(new CsvEventConsumer());
+
+            Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
 
             CreateHostBuilder(args).Build().Run();
 
@@ -182,6 +185,7 @@ namespace Arriba.Server
                     catch (Exception e)
                     {
                         writeException = e;
+                        Trace.TraceError(e.ToString());
                     }
 
                     if (writeException != null)

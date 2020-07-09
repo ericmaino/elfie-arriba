@@ -18,6 +18,8 @@ namespace Arriba.TfsWorkItemCrawler
     {
         private static async Task<int> Main(string[] args)
         {
+            Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
+
             if (args.Length < 2)
             {
                 Usage();

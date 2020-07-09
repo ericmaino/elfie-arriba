@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
@@ -22,13 +23,15 @@ namespace Arriba.Serialization
                 // will then be a sibling of bin.
                 if (s_cachePath == null)
                 {
-                    s_cachePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"..\..\DiskCache");
+                    s_cachePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"../../DiskCache");
+                    Trace.WriteLine($"Using Cache Path {s_cachePath}");
                 }
 
                 return s_cachePath;
             }
             set
             {
+                Trace.WriteLine($"Setting Cache Path {value}");
                 s_cachePath = value;
             }
         }
