@@ -28,7 +28,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             }
         }
 
-        public const string CutoffLocationFormatString = @"Tables\{0}\Cutoff.{1}.txt";
+        public const string CutoffLocationFormatString = @"Tables/{0}/Cutoff.{1}.txt";
         public static DateTimeOffset LoadLastCutoff(string tableName, string configurationName, bool rebuild)
         {
             if (String.IsNullOrEmpty(tableName))
