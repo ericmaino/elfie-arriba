@@ -7,16 +7,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-
 using Arriba.Client.Serialization.Json;
-using Arriba.Diagnostics;
+using Arriba.Configuration;
 using Arriba.Extensions;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Query;
-using Arriba.Serialization.Csv;
 using Arriba.Structures;
-
 using Newtonsoft.Json;
 using Arriba.Model.Security;
 using Microsoft.CodeAnalysis.Elfie.Serialization;
@@ -39,16 +36,16 @@ namespace Arriba.Csv
     'setSettings' to configure a table from JSON settings.
     'setCreators' to set the list of users or groups who can create tables.
     
-    Arriba.Csv /mode:build /table:<TableName> /csvPath:<CsvFilePath> [/maximumCount:<RowLimitForTable>]? [/columns:""C1,C2,C3""]? [/settings:<SettingsJsonPath>]?
-    Arriba.Csv /mode:query /table:<TableName> [/select:<ColumnList>]? [/orderBy:<ColumnName>]? [/count:<CountToShow>]?
-    Arriba.Csv /mode:decorate /table:<TableName> /csvPath:<CsvFilePath> [/maximumCount:<RowLimitForTable>]? [/columns:""C1,C2,C3""]?
-    Arriba.Csv /mode:getSettings /table:<TableName> /path:<SettingsJsonToWritePath>
-    Arriba.Csv /mode:setSettings /table:<TableName> /path:<SettingsJsonToReadPath>
-    Arriba.Csv /mode:setCreators /users:u:DOMAIN\UserName;g:DOMAIN\GroupName
+    Arriba.Csv mode=build table=<TableName> csvPath=<CsvFilePath> [maximumCount=<RowLimitForTable>]? [columns=""C1,C2,C3""]? [settings=<SettingsJsonPath>]?
+    Arriba.Csv mode=query table=<TableName> [select=<ColumnList>]? [orderBy=<ColumnName>]? [count=<CountToShow>]?
+    Arriba.Csv mode=decorate table=<TableName> csvPath=<CsvFilePath> [maximumCount=<RowLimitForTable>]? [columns=""C1,C2,C3""]?
+    Arriba.Csv mode=getSettings table=<TableName> path=<SettingsJsonToWritePath>
+    Arriba.Csv mode=setSettings table=<TableName> path=<SettingsJsonToReadPath>
+    Arriba.Csv mode=s0etCreators users=u:DOMAIN\UserName;g:DOMAIN\GroupName
 
     Ex:
-      Arriba.Csv /mode:build /table:SP500 /csvPath:""C:\Temp\SP500 Price History.csv"" /maximumCount:50000
-      Arriba.Csv /mode:query /table:SP500 /select:""Date, Adj Close"" /count:30
+      Arriba.Csv mode=build table=SP500 csvPath=""C:\Temp\SP500 Price History.csv"" maximumCount=50000
+      Arriba.Csv mode=query table=SP500 select=""Date, Adj Close"" count=30
 ";
         private static JsonSerializerSettings s_serializerSettings = new JsonSerializerSettings() { Formatting = Formatting.Indented, Converters = ConverterFactory.GetArribaConverters() };
 
@@ -63,31 +60,48 @@ namespace Arriba.Csv
         {
             try
             {
-                CommandLine c = CommandLine.Parse();
+                var configLoader = new ArribaConfigurationLoader(args);
 
-                string mode = c.GetString("mode").ToLowerInvariant();
+                var mode = configLoader.GetStringValue("mode").ToLowerInvariant();
                 switch (mode)
                 {
                     case "build":
-                        Build(AddMode.Build, c.GetString("table"), c.GetString("csvPath"), c.GetInt("maximumCount", 100000), c.GetString("columns", null), c.GetString("settings", null));
+                        Build(AddMode.Build,
+                            configLoader.GetStringValue("table"),
+                            configLoader.GetStringValue("csvPath"),
+                            configLoader.GetIntValue("maximumCount", 100000),
+                            configLoader.GetStringValue("columns", null),
+                            configLoader.GetStringValue("settings", null));
                         break;
                     case "append":
-                        Build(AddMode.Append, c.GetString("table"), c.GetString("csvPath"), c.GetInt("maximumCount", 100000), c.GetString("columns", null), c.GetString("settings", null));
+                        Build(AddMode.Append,
+                            configLoader.GetStringValue("table"),
+                            configLoader.GetStringValue("csvPath"),
+                            configLoader.GetIntValue("maximumCount", 100000),
+                            configLoader.GetStringValue("columns", null),
+                            configLoader.GetStringValue("settings", null));
                         break;
                     case "decorate":
-                        Build(AddMode.Decorate, c.GetString("table"), c.GetString("csvPath"), c.GetInt("maximumCount", 100000), c.GetString("columns", null));
+                        Build(AddMode.Decorate,
+                            configLoader.GetStringValue("table"),
+                            configLoader.GetStringValue("csvPath"),
+                            configLoader.GetIntValue("maximumCount", 100000),
+                            configLoader.GetStringValue("columns", null));
                         break;
                     case "query":
-                        Query(c.GetString("table"), c.GetString("select", ""), c.GetString("orderBy", ""), c.GetInt("count", QueryResultLimit));
+                        Query(configLoader.GetStringValue("table"),
+                            configLoader.GetStringValue("select", ""),
+                            configLoader.GetStringValue("orderBy", ""),
+                            configLoader.GetIntValue("count", QueryResultLimit));
                         break;
                     case "getsettings":
-                        GetSettings(c.GetString("table"), c.GetString("path"));
+                        GetSettings(configLoader.GetStringValue("table"),configLoader.GetStringValue("path"));
                         break;
                     case "setsettings":
-                        SetSettings(c.GetString("table"), c.GetString("path"));
+                        SetSettings(configLoader.GetStringValue("table"),configLoader.GetStringValue("path"));
                         break;
                     case "setcreators":
-                        SetTableCreators(c.GetString("users"));
+                        SetTableCreators(configLoader.GetStringValue("users"));
                         break;
                     default:
                         Console.WriteLine(Usage);
@@ -96,7 +110,7 @@ namespace Arriba.Csv
 
                 return 0;
             }
-            catch (CommandLineUsageException ex)
+            catch (ArribaConfigurationLoaderException ex)
             {
                 Console.WriteLine(ex.Message);
                 Console.WriteLine(Usage);
@@ -191,8 +205,8 @@ namespace Arriba.Csv
                 long rowsImported = 0;
                 if (columnNames == null) columnNames = new List<string>(reader.Columns);
 
-                foreach(DataBlock block in ReadAsDataBlockBatch(reader, columnNames))
-                { 
+                foreach (DataBlock block in ReadAsDataBlockBatch(reader, columnNames))
+                {
                     table.AddOrUpdate(block, options);
                     rowsImported += block.RowCount;
                     Console.Write(".");

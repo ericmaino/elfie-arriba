@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Arriba.Test</RootNamespace>
@@ -31,8 +31,8 @@
       <Project>{d89b4a01-f637-4147-9737-91a327a9da3f}</Project>
       <Name>Arriba</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Tools\Arriba.WorkItemCrawler\Arriba.WorkItemCrawler.csproj" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <None Include="app.config">
       <SubType>Designer</SubType>

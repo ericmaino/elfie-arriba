@@ -3,12 +3,15 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.IO;
+using Arriba.Configuration;
 using Arriba.Model.Security;
+using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 
 namespace Arriba.TfsWorkItemCrawler
 {
-    public class CrawlerConfiguration
+    public class CrawlerConfiguration : IArribaConfiguration
     {
         internal const string IdentityFormatExceptionFormatString = @"Identity must be of the format User:DOMAIN\name or Group:DOMAIN\name. Value passed, '{0}', doesn't fit these rules.";
 
@@ -179,6 +182,8 @@ namespace Arriba.TfsWorkItemCrawler
                 default:
                     throw new ArgumentException(String.Format(IdentityFormatExceptionFormatString, identity));
             }
-        }
+        }        
+
+        
     }
 }

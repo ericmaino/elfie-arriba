@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -11,18 +12,16 @@ using System.Text.RegularExpressions;
 
 namespace Arriba.Server
 {
+
     public class Configuration
     {
-        protected const string DefaultSource = "Default";
-        protected const string RuntimeSource = "Runtime";
-        protected const string CommandLineSource = "Command Line";
         protected const string ConfigSource = "Config";
+        protected const string DefaultSource = "Default";
+        protected const string ConfigurationsSource = "Configurations";
 
-        private const int MaximumConfigSources = 20;
         private const int MaximumSymbolNesting = 10;
 
-        protected List<string> ConfigSources;
-        protected List<Dictionary<string, string>> ConfigSettings;
+        protected IConfigurationRoot Configurations;
 
         /// <summary>
         /// Factory method that parses and returns an instance of the config class
@@ -40,49 +39,19 @@ namespace Arriba.Server
         /// <param name="args">command line arguments</param>
         protected Configuration(string[] args)
         {
-            ConfigSources = new List<string>();
-            ConfigSettings = new List<Dictionary<string, string>>();
 
-            // Add a dictionary for runtime settings (first position)
-            Dictionary<string, string> runtimeSettings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
-            AddSettingsToCollection(RuntimeSource, runtimeSettings);
+            Dictionary<string, string> commandLineSettings = ParseArguments(args);            
 
-            // Add Command Line arguments to settings (second position)
-            Dictionary<string, string> commandLineSettings = ParseArguments(args);
-            AddSettingsToCollection(CommandLineSource, commandLineSettings);
-
-            // Add Default app.config if no config specified in arguments
-            if (!InCollection(ConfigSource, commandLineSettings.Keys))
-            {
-                AddSettingsToCollection("App.Config", OpenConfigForName(String.Empty));
-            }
-        }
-
-        /// <summary>
-        /// Adds a parsed set of settings into the overall collection as well as any descendant configs that are referenced
-        /// </summary>
-        /// <param name="source">config source name</param>
-        /// <param name="settings">parsed config settings</param>
-        protected void AddSettingsToCollection(string source, Dictionary<string, string> settings)
-        {
-            // If there are too many sources, throw
-            if (ConfigSettings.Count > MaximumConfigSources) throw new InvalidOperationException(String.Format("Configuration does not support more than {0} sources. Verify a source isn't referencing itself. Sources: [{1}]", MaximumConfigSources, String.Join(", ", ConfigSources.ToArray())));
-
-            // Add this batch of settings to our list
-            ConfigSources.Add(source);
-            ConfigSettings.Add(settings);
-
-            // Next, if this config references another config, add it also [afterward, so these setting values will override ones from a base config]
-            if (InCollection(ConfigSource, settings.Keys))
-            {
-                string nestedSource = settings[ConfigSource];
-                if (!ConfigSources.Contains(nestedSource))
-                {
-                    Dictionary<string, string> nestedSettings = OpenConfigForName(nestedSource);
-                    AddSettingsToCollection(nestedSource, nestedSettings);
-                }
-            }
-        }
+            //The values added at the configuration will be overwritten if the same key exists in the next source.            
+            Configurations = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", true)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true)
+                .AddInMemoryCollection(OpenConfigForName("App.config"))
+                .AddEnvironmentVariables()
+                .AddCommandLine(args)
+                .AddInMemoryCollection(commandLineSettings)
+                .Build();
+        }        
 
         /// <summary>
         /// Parses command line arguments and adds each setting to the colllection one-by-one
@@ -205,20 +174,16 @@ namespace Arriba.Server
         /// <returns>The highest precedence setting for a config option</returns>
         private string ResolveConfigurationKey(string keyName, string defaultString, out string source)
         {
-            // Look at each settings location in order. The first one with the setting provides the value.
-            // They're sorted in priority order, descending.
-            for (int i = 0; i < ConfigSettings.Count; ++i)
+            var value = Configurations[keyName];
+
+            if (value == null)
             {
-                if (InCollection(keyName, ConfigSettings[i].Keys))
-                {
-                    source = ConfigSources[i];
-                    return ConfigSettings[i][keyName];
-                }
+                source = DefaultSource;
+                return defaultString;
             }
 
-            // *) Fall back to default (return null)
-            source = DefaultSource;
-            return defaultString;
+            source = ConfigurationsSource;
+            return value;
         }
 
         /// <summary>
@@ -278,7 +243,7 @@ namespace Arriba.Server
         public void SetSetting(string name, string value)
         {
             // Add or set the setting in the first collection, the runtime settings collection
-            ConfigSettings[0][name] = value;
+            Configurations[name] = value;
         }
 
         /// <summary>
@@ -368,13 +333,16 @@ namespace Arriba.Server
         {
             StringBuilder content = new StringBuilder();
 
-            for (int i = 0; i < ConfigSettings.Count; ++i)
+            content.AppendLine(" Settings:");
+            var enumerator = Configurations.AsEnumerable().GetEnumerator();
+
+            do
             {
-                content.AppendLine(ConfigSources[i] + " Settings:");
-                foreach (string key in ConfigSettings[i].Keys)
-                    content.AppendLine(String.Format("\t[{0}]: [{1}]", key, ConfigSettings[i][key]));
-                content.AppendLine();
+                var item = enumerator.Current;
+                if (item.Key != null)
+                    content.AppendLine(String.Format("\t[{0}]: [{1}]", item.Key, item.Value));
             }
+            while (enumerator.MoveNext());            
 
             return content.ToString();
         }

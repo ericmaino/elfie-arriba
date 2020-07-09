@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Arriba.Csv": {
+      "commandName": "Project",
+      "commandLineArgs": "mode=build table=SP500 csvPath=\"C:\\Temp\\SP500 Price History.csv\" maximumCount=50000"
+    }
+  }
+}
