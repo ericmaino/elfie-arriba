@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.Web">
     <Import Project="..\Arriba.build.props" />
 
@@ -20,6 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.5" />
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
         <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
         <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
@@ -33,6 +34,7 @@
             <Project>{7dcfe5a1-cdbf-426f-bd57-225443651238}</Project>
             <Name>Arriba.Communication</Name>
         </ProjectReference>
+        <ProjectReference Include="..\Arriba.Configuration\Arriba.Configuration.csproj" />
         <ProjectReference Include="..\Arriba\Arriba.csproj">
             <Project>{d89b4a01-f637-4147-9737-91a327a9da3f}</Project>
             <Name>Arriba</Name>

@@ -6,7 +6,7 @@ export default React.createClass({
         return (
             <div className="errorPage">
                 <h1>
-                    <span className="errorTitle">{this.props.status === 401 ? "Access Denied" : "Service Unavailable"}</span>
+                    <span className="errorTitle">Service Unavailable</span>
                     <span className="errorStatus">{this.props.status == 0 ? "" : this.props.status}</span>
                 </h1>
                 <article>

@@ -10,6 +10,7 @@ import Tabs from "./Tabs";
 import SearchBox from "./SearchBox";
 import Search from "./Search";
 import Grid from "./Grid";
+import QueryStats from "./QueryStats";
 window.configuration = require("../configuration/Configuration.jsx").default;
 
 // For schema detection and possible migration.
@@ -19,6 +20,8 @@ class Index extends EventedComponent {
     constructor(props) {
         super(props);
         this.mru = new Mru();
+
+        this.processAuthorization();
 
         this.params = getQueryStringParameters();
         const table = this.params.t;
@@ -42,17 +45,45 @@ class Index extends EventedComponent {
             userSelectedTable: table,
             mode:
                 window.location.pathname.startsWith("/help") ? "help" :
-                window.location.pathname.startsWith("/Grid.html") ? "grid" :
-                undefined // Implies "search".
+                    window.location.pathname.startsWith("/Grid.html") ? "grid" :
+                        undefined // Implies "search".
         };
 
         this.events = {
             "beforeunload": e => this.mru.push(),
         }
     }
+
+    processAuthorization() {
+        const token = this.getHashParams().access_token;
+
+        if (token) {
+            localStorage.setItem("token", token);
+        }
+    }
+
+    getHashParams() {
+
+        var hashParams = {};
+        var e,
+            a = /\+/g,  // Regex for replacing addition symbol with a space
+            r = /([^&;=]+)=?([^&;]*)/g,
+            d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+            q = window.location.hash.substring(1);
+
+        while (e = r.exec(q))
+            hashParams[d(e[1])] = d(e[2]);
+
+        return hashParams;
+    }
+
+    checkAuth() {
+
+    }
+
     componentDidMount() {
         super.componentDidMount();
-        window.errorBar = msg => this.setState({ error: msg});
+        window.errorBar = msg => this.setState({ error: msg });
         this.refreshAllBasics();
         this.componentDidUpdate({}, {});
     }
@@ -124,71 +155,76 @@ class Index extends EventedComponent {
     }
 
     render() {
-        if (this.state.blockingErrorStatus != null) return <ErrorPage status={this.state.blockingErrorStatus} />;
-        const Page = { grid: Grid, help: Help }[this.state.mode] || Search;
-        return <div className="viewport" onKeyDown={this.onKeyDown.bind(this)}>
-            {this.state.error && <div className="errorBar">{this.state.error}</div>}
-            <div className="header">
-                <a className="title font-light" onClick={() => {
-                    this.setState({ mode: undefined, query: "", userSelectedTable: undefined });
-                    this.refs.searchBox.focus();
-                }}>{configuration.toolName}</a>
-                <Tabs
-                    allBasics={this.state.allBasics}
-                    refreshAllBasics={this.refreshAllBasics.bind(this)}
+        if (this.state.blockingErrorStatus === 401) {
+            window.location.href = configuration.url + "/api/oauth"
+        }
+        else {
+            if (this.state.blockingErrorStatus != null) return <ErrorPage status={this.state.blockingErrorStatus} />;
+            const Page = { grid: Grid, help: Help }[this.state.mode] || Search;
+            return <div className="viewport" onKeyDown={this.onKeyDown.bind(this)}>
+                {this.state.error && <div className="errorBar">{this.state.error}</div>}
+                <div className="header">
+                    <a className="title font-light" onClick={() => {
+                        this.setState({ mode: undefined, query: "", userSelectedTable: undefined });
+                        this.refs.searchBox.focus();
+                    }}>{configuration.toolName}</a>
+                    <Tabs
+                        allBasics={this.state.allBasics}
+                        refreshAllBasics={this.refreshAllBasics.bind(this)}
 
-                    query={this.state.query}
-                    queryUrl={this.state.queryUrl}
-                    thisUrl={this.state.thisUrl}
-
-                    currentTable={this.state.currentTable}
-                    userSelectedTable={this.state.userSelectedTable}
-                    userSelectedTableChanged={name => this.setState({ userSelectedTable: name })}
-
-                    counts={this.state.counts}>
-
-                    <SearchBox ref="searchBox"
                         query={this.state.query}
-                        parsedQuery={this.state.counts && this.state.counts.parsedQuery}
-                        queryChanged={query => this.setState({ query: query })}
+                        queryUrl={this.state.queryUrl}
+                        thisUrl={this.state.thisUrl}
+
+                        currentTable={this.state.currentTable}
                         userSelectedTable={this.state.userSelectedTable}
-                        loading={this.state.loading} />
+                        userSelectedTableChanged={name => this.setState({ userSelectedTable: name })}
 
-                </Tabs>
-            </div>
-            <div className="middle">
-                <div className="mode">
-                    <a title="Listing" className={this.state.mode === undefined ? "selected" : undefined}
-                        onClick={e => this.setState({ mode: undefined }) }><SvgPage /></a>
-                    <a title="Grid" className={this.state.mode === "grid" ? "selected" : undefined}
-                        onClick={e => this.setState({ mode: "grid" }) }><SvgGrid /></a>
-                    <span className="mode-fill"></span>
-                    <a title="Feedback" href={"mailto:" + encodeURIComponent(configuration.feedbackEmailAddresses) + "?subject=" + encodeURIComponent(configuration.toolName) + " Feedback"}>
-                        <img src="/icons/feedback.svg" alt="feedback"/>
-                    </a>
-                    <a>
-                        <img src="/icons/help.svg" alt="help" title="Help" onClick={() => this.setState({ mode: this.state.mode === "help" ? undefined : "help" })}/>
-                    </a>
+                        counts={this.state.counts}>
+
+                        <SearchBox ref="searchBox"
+                            query={this.state.query}
+                            parsedQuery={this.state.counts && this.state.counts.parsedQuery}
+                            queryChanged={query => this.setState({ query: query })}
+                            userSelectedTable={this.state.userSelectedTable}
+                            loading={this.state.loading} />
+
+                    </Tabs>
                 </div>
-                <Page params={this.params}
-                    allBasics={this.state.allBasics}
-                    refreshAllBasics={then => this.refreshAllBasics(then)}
+                <div className="middle">
+                    <div className="mode">
+                        <a title="Listing" className={this.state.mode === undefined ? "selected" : undefined}
+                            onClick={e => this.setState({ mode: undefined })}><SvgPage /></a>
+                        <a title="Grid" className={this.state.mode === "grid" ? "selected" : undefined}
+                            onClick={e => this.setState({ mode: "grid" })}><SvgGrid /></a>
+                        <span className="mode-fill"></span>
+                        <a title="Feedback" href={"mailto:" + encodeURIComponent(configuration.feedbackEmailAddresses) + "?subject=" + encodeURIComponent(configuration.toolName) + " Feedback"}>
+                            <img src="/icons/feedback.svg" alt="feedback" />
+                        </a>
+                        <a>
+                            <img src="/icons/help.svg" alt="help" title="Help" onClick={() => this.setState({ mode: this.state.mode === "help" ? undefined : "help" })} />
+                        </a>
+                    </div>
+                    <Page params={this.params}
+                        allBasics={this.state.allBasics}
+                        refreshAllBasics={then => this.refreshAllBasics(then)}
 
-                    query={this.state.query}
-                    debouncedQuery={this.state.debouncedQuery}
-                    queryChanged={query => this.setState({ query: query })}
+                        query={this.state.query}
+                        debouncedQuery={this.state.debouncedQuery}
+                        queryChanged={query => this.setState({ query: query })}
 
-                    userSelectedTable={this.state.userSelectedTable}
-                    userSelectedTableChanged={table => this.setState({ userSelectedTable: table })}
-                    currentTable={this.state.currentTable}
+                        userSelectedTable={this.state.userSelectedTable}
+                        userSelectedTableChanged={table => this.setState({ userSelectedTable: table })}
+                        currentTable={this.state.currentTable}
 
-                    queryUrlChanged={url => this.setState({ queryUrl: url })}
-                    thisUrlChanged={url => this.setState({ thisUrl: url })}
+                        queryUrlChanged={url => this.setState({ queryUrl: url })}
+                        thisUrlChanged={url => this.setState({ thisUrl: url })}
 
-                    getCounts={this.getCounts.bind(this)}
+                        getCounts={this.getCounts.bind(this)}
                     />
+                </div>
             </div>
-        </div>
+        }
     }
 }
 

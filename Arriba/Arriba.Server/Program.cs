@@ -1,10 +1,13 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Arriba.Communication;
+using Arriba.Configuration;
 using Arriba.Monitoring;
-using Arriba.Server.Hosting;
+using Arriba.Security.OAuth;
 using Arriba.Server.Owin;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +19,7 @@ using Newtonsoft.Json.Converters;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 using AspNetHost = Microsoft.Extensions.Hosting.Host;
 
@@ -25,15 +29,18 @@ namespace Arriba.Server
     {
         private const int DefaultPort = 42784;
 
+
+
         private static void Main(string[] args)
         {
             Console.WriteLine("Arriba Local Server\r\n");
 
-            Configuration c = Configuration.GetConfigurationForArgs(args);
-            int portNumber = c.GetConfigurationInt("port", DefaultPort);
+
+            var configLoader = new ArribaConfigurationLoader(args);
+            
 
             // Write trace messages to console if /trace is specified 
-            if (c.GetConfigurationBool("trace", Debugger.IsAttached))
+            if (configLoader.GetBoolValue("trace", Debugger.IsAttached))
             {
                 EventPublisher.AddConsumer(new ConsoleEventConsumer());
             }
@@ -58,10 +65,14 @@ namespace Arriba.Server
 
         private class Startup
         {
+            private ArribaServerConfiguration serverConfig;
+
             // This method gets called by the runtime. Use this method to add services to the container.
             // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
             public void ConfigureServices(IServiceCollection services)
             {
+                var configLoader = new ArribaConfigurationLoader(new string[] { });
+                serverConfig = configLoader.Bind<ArribaServerConfiguration>("ArribaServer");
                 // TODO: Remove this setting and fix locations where sync IO happens
                 services.Configure<KestrelServerOptions>(options =>
                 {
@@ -71,13 +82,29 @@ namespace Arriba.Server
                 services.AddCors(cors =>
                 {
                     cors.AddDefaultPolicy(builder =>
-                                      {
+                                            {
                                                 builder.WithOrigins(new[] { "http://localhost:8080" })
                                                     .AllowAnyMethod()
                                                     .AllowCredentials()
                                                     .AllowAnyHeader();
-                                      });
+                                            });
                 });
+
+                var azureTokens = AzureJwtTokenFactory.CreateAsync(serverConfig.OAuthConfig).Result;
+                services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                    .AddJwtBearer(azureTokens.Configure);
+
+                var jwtBearerPolicy = new AuthorizationPolicyBuilder()
+                   .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                   .RequireAuthenticatedUser()
+                   .Build();
+
+                services.AddAuthorization(auth =>
+                {
+                    auth.DefaultPolicy = jwtBearerPolicy;
+                });
+
+                services.AddSingleton<IOAuthConfig>( (_) => serverConfig.OAuthConfig);
                 services.AddControllers();
             }
 
@@ -91,10 +118,11 @@ namespace Arriba.Server
 
                 app.UseRouting();
                 app.UseCors();
+                app.UseAuthorization();
                 app.UseEndpoints(endpoints =>
                 {
                     endpoints.MapControllers();
-                    endpoints.MapFallback(HandleArribaRequest);
+                    endpoints.MapFallback(HandleArribaRequest).RequireAuthorization();
                 });
             }
 
@@ -105,9 +133,9 @@ namespace Arriba.Server
                 host.Compose();
 
                 var server = host.GetService<ComposedApplicationServer>();
-                        var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
-                        var response = await server.HandleAsync(request, false);
-                        await Write(request, response, server.ReaderWriter, context);
+                var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
+                var response = await server.HandleAsync(request, false);
+                await Write(request, response, server.ReaderWriter, context);
             }
 
             private async Task Write(ArribaHttpContextRequest request, IResponse response, IContentReaderWriterService readerWriter, HttpContext context)

@@ -173,9 +173,15 @@ function jsonQuery(url, onSuccess, onError, parameters) {
     var paramUri = buildUrlParameters(parameters);
 
     var request = new XMLHttpRequest();
-    if(!configuration || !configuration.noCredentials) request.withCredentials = true;
+    var token = localStorage.getItem('token');
+  
+    if(!token && (!configuration || !configuration.noCredentials)) request.withCredentials = true;
     request.url = url + paramUri; // For error reporting.
     request.open('GET', request.url, true);
+    
+    if (token) {
+        request.setRequestHeader('Authorization', "Bearer " + localStorage.getItem("token"))
+    }
 
     request.onload = function () {
         if (request.status >= 200 && request.status < 400) {
