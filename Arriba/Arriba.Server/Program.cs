@@ -61,6 +61,16 @@ namespace Arriba.Server
             // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
             public void ConfigureServices(IServiceCollection services)
             {
+                services.AddCors(cors =>
+                {
+                    cors.AddDefaultPolicy(builder =>
+                                      {
+                                                builder.WithOrigins(new[] { "http://localhost:8080" })
+                                                    .AllowAnyMethod()
+                                                    .AllowCredentials()
+                                                    .AllowAnyHeader();
+                                      });
+                });
                 services.AddControllers();
             }
 
@@ -73,6 +83,7 @@ namespace Arriba.Server
                 }
 
                 app.UseRouting();
+                app.UseCors();
                 app.UseEndpoints(endpoints =>
                 {
                     endpoints.MapControllers();
@@ -87,9 +98,9 @@ namespace Arriba.Server
                 host.Compose();
 
                 var server = host.GetService<ComposedApplicationServer>();
-                    var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
-                    var response = await server.HandleAsync(request, false);
-                    await Write(request, response, server.ReaderWriter, context);
+                        var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
+                        var response = await server.HandleAsync(request, false);
+                        await Write(request, response, server.ReaderWriter, context);
             }
 
             private async Task Write(ArribaHttpContextRequest request, IResponse response, IContentReaderWriterService readerWriter, HttpContext context)
