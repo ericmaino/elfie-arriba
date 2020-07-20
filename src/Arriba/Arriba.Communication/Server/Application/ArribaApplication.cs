@@ -92,10 +92,22 @@ namespace Arriba.Server
 
         protected IResponse ValidateCreateAccess(IRequestContext ctx, Route route)
         {
-            bool hasPermission = false;
+            var user = ctx.Request.User;
 
+            if (!ValidateCreateAccessForUser(user))
+            {
+                return ArribaResponse.Forbidden(String.Format("Create Table access denied for {0}.", user.Identity.Name));
+            }
+            
+            return ContinueToNextHandlerResponse;
+            
+        }
+
+        protected bool ValidateCreateAccessForUser(IPrincipal user)
+        {
+            bool hasPermission = false;
             var security = this.Database.DatabasePermissions();
-            if(!security.HasTableAccessSecurity)
+            if (!security.HasTableAccessSecurity)
             {
                 // TODO: CoreBug
                 hasPermission = false;
@@ -105,17 +117,11 @@ namespace Arriba.Server
             else
             {
                 // Otherwise, check for writer or better permissions at the DB level
-                hasPermission = HasPermission(security, ctx.Request.User, PermissionScope.Writer);
+                hasPermission = HasPermission(security, user, PermissionScope.Writer);
             }
 
-            if(!hasPermission)
-            {
-                return ArribaResponse.Forbidden(String.Format("Create Table access denied for {0}.", ctx.Request.User.Identity.Name));
-            }
-            else
-            {
-                return ContinueToNextHandlerResponse;
-            }
+            return hasPermission;
+
         }
 
         protected IResponse ValidateReadAccess(IRequestContext ctx, Route routeData)
@@ -179,7 +185,7 @@ namespace Arriba.Server
             var security = this.Database.Security(tableName);
 
             // No security? Allowed.
-            if(!security.HasTableAccessSecurity)
+            if (!security.HasTableAccessSecurity)
             {
                 return true;
             }
@@ -191,7 +197,7 @@ namespace Arriba.Server
         protected bool HasPermission(SecurityPermissions security, IPrincipal currentUser, PermissionScope scope)
         {
             // No user identity? Forbidden! 
-            if (currentUser == null || !currentUser.Identity.IsAuthenticated)
+            if (currentUser == null || currentUser.Identity == null || !currentUser.Identity.IsAuthenticated)
             {
                 return false;
             }
