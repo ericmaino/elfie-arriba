@@ -125,11 +125,6 @@ namespace Arriba.Configuration
             // Get the value for this key, or use the default
             string value = GetRawConfigurationValue(keyName, defaultString);
 
-            if (value == null && defaultString == null)
-            {
-                throw new ArribaConfigurationLoaderException("Key not found!");
-            }
-
             // Now, *if the setting was found*, look for symbols in the value. Symbols look like {{SettingName}}.
             if (value != defaultString)
             {

@@ -62,15 +62,6 @@ namespace Arriba.Test.Configuration
             Assert.AreEqual("Louvau", configurationLoader.GetStringValue("Arriba:arribaTable"));
         }
 
-        [TestMethod]
-        public void ThrowExeceptionWhenParameterDoestExists()
-        {
-            var args = new string[] { "mode=load" };
-            var configurationLoader = new ArribaConfigurationLoader(args);
-            Assert.AreEqual("load", configurationLoader.GetStringValue("mode"));
-            Assert.ThrowsException<ArribaConfigurationLoaderException>(() => configurationLoader.GetStringValue("teste"));
-        }
-
         [DataTestMethod]
         [DataRow(new string[] { "mode=load" })]
         [DataRow(new string[] { "name=\"First Document\"" })]
