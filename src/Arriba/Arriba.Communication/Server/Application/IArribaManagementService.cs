@@ -1,4 +1,5 @@
 ﻿using Arriba.Model;
+using Arriba.Model.Column;
 using Arriba.Types;
 using System.Collections.Generic;
 using System.Security.Principal;
@@ -18,5 +19,7 @@ namespace Arriba.Communication.Server.Application
         TableInformation GetTableInformationForUser(string tableName, IPrincipal user);
 
         TableInformation CreateTableForUser(CreateTableRequest table, IPrincipal user);
+
+        void AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user);
     }
 }
