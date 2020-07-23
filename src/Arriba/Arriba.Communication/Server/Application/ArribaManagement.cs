@@ -121,6 +121,9 @@ namespace Arriba.Server.Application
 
         private TableInformation GetTableBasics(string tableName, IRequestContext ctx)
         {
+            if (!HasTableAccess(tableName, user, PermissionScope.Reader))
+                return null;
+
             var table = this.Database[tableName];
 
             TableInformation ti = new TableInformation();
