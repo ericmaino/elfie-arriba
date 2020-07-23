@@ -1,7 +1,10 @@
 ﻿using Arriba.Communication.Server.Application;
 using Arriba.Model.Security;
 using Arriba.Server.Hosting;
+using Arriba.Types;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -104,6 +107,76 @@ namespace Arriba.Test.Services
             Assert.IsFalse(tableReader.CanWrite);
         }
 
+        [TestMethod]
+        public void CreateTableForUserNullObject()
+        {            
+            Assert.ThrowsException<ArgumentNullException>(() => _service.CreateTableForUser(null, _nonAuthenticatedUser));
+            Assert.ThrowsException<ArgumentNullException>(() => _service.CreateTableForUser(null, _reader));
+            Assert.ThrowsException<ArgumentNullException>(() => _service.CreateTableForUser(null, _writer));
+            Assert.ThrowsException<ArgumentNullException>(() => _service.CreateTableForUser(null, _owner));
+        }
+
+        [DataTestMethod]
+        [DataRow(null)]
+        [DataRow("")]
+        [DataRow("  ")]
+        public void CreateTableForUserWithInvalidName(string tableName)
+        {
+            var tableRequest = new CreateTableRequest(tableName, 1000);
+
+            Assert.ThrowsException<ArgumentException>(() => _service.CreateTableForUser(tableRequest, _nonAuthenticatedUser));
+            Assert.ThrowsException<ArgumentException>(() => _service.CreateTableForUser(tableRequest, _reader));
+            Assert.ThrowsException<ArgumentException>(() => _service.CreateTableForUser(tableRequest, _writer));
+            Assert.ThrowsException<ArgumentException>(() => _service.CreateTableForUser(tableRequest, _owner));
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void CreateTableForUserNotAuthorized(string tableName)
+        {
+            var tableRequest = new CreateTableRequest($"{tableName}_notauthorized", 1000);
+
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.CreateTableForUser(tableRequest, _nonAuthenticatedUser));
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.CreateTableForUser(tableRequest, _reader));
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void CreateTableForUserOwner(string tableName)
+        {
+            CreateTableForUser(tableName, _owner);
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void CreateTableForUserWriter(string tableName)
+        {
+            CreateTableForUser(tableName, _writer);
+        }
+
+        private void CreateTableForUser(string table, IPrincipal user)
+        {
+            var db = new SecureDatabase();
+            var tableName = $"{table}_{user.Identity.Name}";
+
+            DeleteTable(db, tableName);
+
+            var tableOwner = _service.CreateTableForUser(new CreateTableRequest(tableName, 1000), user);
+            Assert.IsNotNull(tableOwner);
+            Assert.IsTrue(tableOwner.CanAdminister);
+            Assert.IsTrue(tableOwner.CanWrite);
+
+            DeleteTable(db, tableName);
+
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void CreateTableForUserTableAlreadyExists(string tableName)
+        {
+            Assert.ThrowsException<TableAlreadyExistsException>(() => _service.CreateTableForUser(new CreateTableRequest(tableName, 1000), _owner));
+        }
+        
         private ClaimsPrincipal GetAuthenticatedUser(string userName, PermissionScope scope)
         {
             var identity = new ClaimsIdentity(new GenericIdentity(userName, AuthenticationType));
