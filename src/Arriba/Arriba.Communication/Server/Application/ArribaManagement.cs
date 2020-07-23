@@ -268,40 +268,62 @@ namespace Arriba.Server.Application
         private async Task<IResponse> CreateNew(IRequestContext request, Route routeData)
         {
             CreateTableRequest createTable = await request.Request.ReadBodyAsync<CreateTableRequest>();
-
-            if (createTable == null)
-            {
-                return ArribaResponse.BadRequest("Invalid body");
-            }
-
-            // Does the table already exist? 
-            if (this.Database.TableExists(createTable.TableName))
-            {
-                return ArribaResponse.BadRequest("Table already exists");
-            }
+            var user = request.Request.User;
 
             using (request.Monitor(MonitorEventLevel.Information, "Create", type: "Table", identity: createTable.TableName, detail: createTable))
             {
-                var table = this.Database.AddTable(createTable.TableName, createTable.ItemCountLimit);
-
-                // Add columns from request
-                table.AddColumns(createTable.Columns);
-
-                // Include permissions from request
-                if (createTable.Permissions != null)
+                try
                 {
-                    // Ensure the creating user is always an owner
-                    createTable.Permissions.Grant(IdentityScope.User, request.Request.User.Identity.Name, PermissionScope.Owner);
-
-                    this.Database.SetSecurity(createTable.TableName, createTable.Permissions);
+                    _service.CreateTableForUser(createTable, user);
                 }
+                catch (Exception ex)
+                {
+                    if (ex is ArribaAccessForbiddenException)
+                        return ArribaResponse.Forbidden(ex.Message);
 
-                // Save, so that table existence, column definitions, and permissions are saved
-                table.Save();
-                this.Database.SaveSecurity(createTable.TableName);
+                    return ArribaResponse.BadRequest(ex.Message);
+
+                }
             }
 
-            return ArribaResponse.Ok(null);
+            return ArribaResponse.Created(createTable.TableName);
+        }
+
+        TableInformation IArribaManagementService.CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
+        {
+            if (createTable == null)
+                throw new ArgumentNullException(nameof(createTable));
+
+            if (string.IsNullOrWhiteSpace(createTable.TableName))
+                throw new ArgumentException("Invalid table name");            
+
+            if (!ValidateCreateAccessForUser(user))
+                throw new ArribaAccessForbiddenException($"Create Table access denied.");
+
+            if (this.Database.TableExists(createTable.TableName))
+            {
+                throw new TableAlreadyExistsException($"Table {createTable.TableName} already exists");
+            }
+
+            var table = this.Database.AddTable(createTable.TableName, createTable.ItemCountLimit);
+
+            // Add columns from request
+            table.AddColumns(createTable.Columns);
+
+            // Include permissions from request
+            if (createTable.Permissions != null)
+            {
+                // Ensure the creating user is always an owner
+                createTable.Permissions.Grant(IdentityScope.User, user.Identity.Name, PermissionScope.Owner);
+
+                this.Database.SetSecurity(createTable.TableName, createTable.Permissions);
+            }
+
+            // Save, so that table existence, column definitions, and permissions are saved
+            table.Save();
+            this.Database.SaveSecurity(createTable.TableName);
+
+            return _service.GetTableInformationForUser(createTable.TableName, user);
         }
 
         /// <summary>
