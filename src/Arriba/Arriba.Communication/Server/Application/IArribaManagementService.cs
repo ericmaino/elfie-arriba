@@ -1,4 +1,5 @@
-﻿using Arriba.Types;
+﻿using Arriba.Model;
+using Arriba.Types;
 using System.Collections.Generic;
 using System.Security.Principal;
 
@@ -15,5 +16,7 @@ namespace Arriba.Communication.Server.Application
         bool UnloadAllTableForUser(IPrincipal user);
 
         TableInformation GetTableInformationForUser(string tableName, IPrincipal user);
+
+        TableInformation CreateTableForUser(CreateTableRequest table, IPrincipal user);
     }
 }
