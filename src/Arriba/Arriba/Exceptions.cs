@@ -67,4 +67,13 @@ namespace Arriba
         public ColumnNotFoundException(string message, Exception inner) : base(message, inner) { }
         protected ColumnNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
+
+    [Serializable]
+    public class ArribaAccessForbiddenException : ArribaException
+    {
+        public ArribaAccessForbiddenException() { }
+        public ArribaAccessForbiddenException(string message) : base(message) { }
+        public ArribaAccessForbiddenException(string message, Exception inner) : base(message, inner) { }
+        protected ArribaAccessForbiddenException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    }
 }
