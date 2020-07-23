@@ -75,10 +75,10 @@ namespace Arriba.Test.Services
         [DataRow(TableName)]
         public void UnloadTableByUser(string tableName)
         {
-            Assert.AreEqual(false, _service.UnloadTableForUser(tableName, _nonAuthenticatedUser));
-            Assert.AreEqual(false, _service.UnloadTableForUser(tableName, _reader));
-            Assert.AreEqual(true, _service.UnloadTableForUser(tableName, _owner));
-            Assert.AreEqual(true, _service.UnloadTableForUser(tableName, _writer));
+            Assert.IsFalse(_service.UnloadTableForUser(tableName, _nonAuthenticatedUser));
+            Assert.IsFalse(_service.UnloadTableForUser(tableName, _reader));
+            Assert.IsTrue(_service.UnloadTableForUser(tableName, _owner));
+            Assert.IsTrue(_service.UnloadTableForUser(tableName, _writer));
         }
 
         [DataTestMethod]
