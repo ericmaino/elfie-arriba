@@ -51,6 +51,15 @@ namespace Arriba
     }
 
     [Serializable]
+    public class TableAlreadyExistsException : ArribaException
+    {
+        public TableAlreadyExistsException() { }
+        public TableAlreadyExistsException(string message) : base(message) { }
+        public TableAlreadyExistsException(string message, Exception inner) : base(message, inner) { }
+        protected TableAlreadyExistsException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    }
+
+    [Serializable]
     public class ColumnNotFoundException : ArribaException
     {
         public ColumnNotFoundException() { }
