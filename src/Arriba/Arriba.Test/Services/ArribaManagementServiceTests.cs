@@ -1,11 +1,12 @@
 ﻿using Arriba.Communication.Server.Application;
+using Arriba.Model;
+using Arriba.Model.Column;
 using Arriba.Model.Security;
 using Arriba.Server.Hosting;
+using Arriba.Structures;
 using Arriba.Types;
-using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
@@ -28,6 +29,9 @@ namespace Arriba.Test.Services
         private readonly DatabaseFactory _databaseFactory;
         public ArribaManagementServiceTests()
         {
+            DeleteDatabaseTestTables();
+            CreateTestDatabase(TableName);
+
             _nonAuthenticatedUser = new ClaimsPrincipal();
             _reader = GetAuthenticatedUser("user1", PermissionScope.Reader);
             _writer = GetAuthenticatedUser("user2", PermissionScope.Writer);
@@ -37,6 +41,56 @@ namespace Arriba.Test.Services
             var factory = new ArribaManagementServiceFactory(_databaseFactory);
 
             _service = factory.CreateArribaManagementService();
+        }
+
+        private void CreateTestDatabase(string tableName)
+        {
+            SecureDatabase db = new SecureDatabase();
+
+            if (db.TableExists(tableName)) db.DropTable(tableName);
+
+            Table t = db.AddTable(tableName, 100);
+            t.AddColumn(new ColumnDetails("ID", "int", null, null, true));
+            t.AddColumn(new ColumnDetails("Name", "string", ""));
+
+            DataBlock b = new DataBlock(new string[] { "ID", "Name" }, 4,
+                new Array[]
+                {
+                    new int[] { 1, 2, 3, 4},
+                    new string[] { "visouza", "ericmai", "louvau", "scott"}
+                });
+            t.AddOrUpdate(b);
+            t.Save();
+
+            //For database
+            SetSecurityGroup(db, string.Empty);
+            //For table
+            SetSecurityGroup(db, tableName);
+        }
+
+        private void SetSecurityGroup(SecureDatabase db, string tableName)
+        {
+            SecurityPermissions security = db.Security(tableName);
+
+            security.Readers.Add(new SecurityIdentity(IdentityScope.Group, PermissionScope.Reader.ToString()));
+            security.Writers.Add(new SecurityIdentity(IdentityScope.Group, PermissionScope.Writer.ToString()));
+            security.Owners.Add(new SecurityIdentity(IdentityScope.Group, PermissionScope.Owner.ToString()));
+            db.SaveSecurity(tableName);
+        }
+
+        private void DeleteTable(SecureDatabase db, string tableName)
+        {
+            if (db.TableExists(tableName))
+                db.DropTable(tableName);
+        }
+
+        private void DeleteDatabaseTestTables()
+        {
+            var db = new SecureDatabase();
+            foreach (var table in db.TableNames)
+            {
+                DeleteTable(db, table);
+            }
         }
 
         [TestMethod]
@@ -109,7 +163,7 @@ namespace Arriba.Test.Services
 
         [TestMethod]
         public void CreateTableForUserNullObject()
-        {            
+        {
             Assert.ThrowsException<ArgumentNullException>(() => _service.CreateTableForUser(null, _nonAuthenticatedUser));
             Assert.ThrowsException<ArgumentNullException>(() => _service.CreateTableForUser(null, _reader));
             Assert.ThrowsException<ArgumentNullException>(() => _service.CreateTableForUser(null, _writer));
