@@ -325,7 +325,6 @@ namespace Arriba.Csv
 
         private static CombinedSettings LoadSettings(string settingsJsonPath)
         {
-            CombinedSettings settings = new CombinedSettings();
             string settingsJson = File.ReadAllText(settingsJsonPath);
             return JsonConvert.DeserializeObject<CombinedSettings>(settingsJson, s_serializerSettings);
         }
