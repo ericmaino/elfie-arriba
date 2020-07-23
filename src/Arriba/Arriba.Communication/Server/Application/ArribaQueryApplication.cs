@@ -57,6 +57,8 @@ namespace Arriba.Server
         private async Task<IResponse> Select(IRequestContext ctx, Route route)
         {
             string tableName = GetAndValidateTableName(route);
+            var user = ctx.Request.User;
+
             if (!this.Database.TableExists(tableName))
             {
                 return ArribaResponse.NotFound("Table not found to select from.");
@@ -80,7 +82,7 @@ namespace Arriba.Server
             // Read Joins, if passed
             IQuery<SelectResult> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, p);
 
-            ICorrector correctors = this.CurrentCorrectors(ctx);
+            ICorrector correctors = this.CurrentCorrectors(user);
             using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
             {
                 // Run server correctors
@@ -322,6 +324,7 @@ namespace Arriba.Server
         private async Task<IResponse> AllCount(IRequestContext ctx, Route route)
         {
             NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            var user = ctx.Request.User;
 
             string queryString = p["q"] ?? "";
             AllCountResult result = new AllCountResult(queryString);
@@ -335,11 +338,10 @@ namespace Arriba.Server
             // Run server correctors
             using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "AllCount", detail: query.Where.ToString()))
             {
-                query.Correct(this.CurrentCorrectors(ctx));
+                query.Correct(this.CurrentCorrectors(user));
             }
 
             // Accumulate Results for each table
-            IPrincipal user = ctx.Request.User;
             using (ctx.Monitor(MonitorEventLevel.Information, "AllCount", type: "AllCount", detail: query.Where.ToString()))
             {
                 IExpression defaultWhere = query.Where;
@@ -417,6 +419,7 @@ namespace Arriba.Server
         private IResponse Query<T>(IRequestContext ctx, Route route, IQuery<T> query, NameValueCollection p)
         {
             IQuery<T> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, p);
+            var user = ctx.Request.User;
 
             // Ensure the table exists and set it on the query
             string tableName = GetAndValidateTableName(route);
@@ -430,7 +433,7 @@ namespace Arriba.Server
             // Correct the query with default correctors
             using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
             {
-                query.Correct(this.CurrentCorrectors(ctx));
+                query.Correct(this.CurrentCorrectors(user));
             }
 
             // Execute and return results for the query
