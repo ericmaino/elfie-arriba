@@ -130,6 +130,17 @@ namespace Arriba.Server
 
         }
 
+        protected bool ValidateTableAccessForUser(string tableName, IPrincipal user, PermissionScope scope)
+        {
+            if (!this.Database.TableExists(tableName))
+            {
+                throw new TableNotFoundException($"Table {tableName} does not exist.");
+            }
+
+            return HasTableAccess(tableName, user, scope);
+        }
+
+
         protected IResponse ValidateReadAccess(IRequestContext ctx, Route routeData)
         {
             return this.ValidateTableAccess(ctx, routeData, PermissionScope.Reader);
