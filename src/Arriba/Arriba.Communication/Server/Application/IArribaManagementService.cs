@@ -10,6 +10,8 @@ namespace Arriba.Communication.Server.Application
 {
     public interface IArribaManagementService
     {
+        SecureDatabase GetDatabaseForOwner(IPrincipal user);
+
         IEnumerable<string> GetTables();
 
         IDictionary<string, TableInformation> GetTablesForUser(IPrincipal user);

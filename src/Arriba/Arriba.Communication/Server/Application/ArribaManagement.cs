@@ -84,6 +84,14 @@ namespace Arriba.Server.Application
         }
 
 
+        SecureDatabase IArribaManagementService.GetDatabaseForOwner(IPrincipal user)
+        {
+            if (!ValidateDatabaseAccessForUser(user, PermissionScope.Owner))
+                throw new ArribaAccessForbiddenException("User has no be an owner to retrieve the database");
+
+            return Database;
+        }
+
         IEnumerable<string> IArribaManagementService.GetTables()
         {
             return this.Database.TableNames;
