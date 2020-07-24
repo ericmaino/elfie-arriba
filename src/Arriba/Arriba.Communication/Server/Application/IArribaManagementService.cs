@@ -23,5 +23,7 @@ namespace Arriba.Communication.Server.Application
         void AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user);
 
         (bool, ExecutionDetails) SaveTableForUser(string tableName, IPrincipal user, VerificationLevel verificationLevel);
+
+        void ReloadTableForUser(string tableName, IPrincipal user);
     }
 }
