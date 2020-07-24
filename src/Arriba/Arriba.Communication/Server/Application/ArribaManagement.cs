@@ -252,9 +252,10 @@ namespace Arriba.Server.Application
         {
             string tableName = GetAndValidateTableName(route);
             IExpression query = SelectQuery.ParseWhere(ctx.Request.ResourceParameters["q"]);
+            var user = ctx.Request.User;
 
             // Run server correctors
-            query = this.CurrentCorrectors(ctx).Correct(query);
+            query = this.CurrentCorrectors(user).Correct(query);
 
             if (!this.Database.TableExists(tableName))
             {

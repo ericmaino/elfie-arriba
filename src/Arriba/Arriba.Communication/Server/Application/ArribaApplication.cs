@@ -54,10 +54,16 @@ namespace Arriba.Server
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        protected ICorrector CurrentCorrectors(IRequestContext ctx)
+        protected ICorrector CurrentCorrectors(IPrincipal user)
         {
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
+
+            if (user.Identity == null)
+                throw new ArgumentException("User has no identity", nameof(user));
+
             // Add the 'MeCorrector' for the requesting user (must be first, to chain with the UserAliasCorrector)
-            return new ComposedCorrector(new MeCorrector(ctx.Request.User.Identity.Name), _correctors);
+            return new ComposedCorrector(new MeCorrector(user.Identity.Name), _correctors);
         }
 
         protected Task<IResponse> ValidateBodyAsync(IRequestContext ctx, Route route)
