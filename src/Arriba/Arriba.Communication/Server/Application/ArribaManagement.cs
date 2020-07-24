@@ -25,7 +25,7 @@ namespace Arriba.Server.Application
     [Export(typeof(IRoutedApplication))]
     internal class ArribaManagement : ArribaApplication, IArribaManagementService
     {
-        private readonly IArribaManagementService _service;        
+        private readonly IArribaManagementService _service;
 
         [ImportingConstructor]
         public ArribaManagement(DatabaseFactory f, ClaimsAuthenticationService auth)
@@ -183,7 +183,7 @@ namespace Arriba.Server.Application
         }
 
         bool IArribaManagementService.UnloadTableForUser(string tableName, IPrincipal user)
-        {            
+        {
             if (!this.HasTableAccess(tableName, user, PermissionScope.Writer))
                 return false;
 
@@ -200,7 +200,7 @@ namespace Arriba.Server.Application
         }
 
         bool IArribaManagementService.UnloadAllTableForUser(IPrincipal user)
-        {            
+        {
             if (!this.ValidateCreateAccessForUser(user))
                 return false;
 
@@ -339,7 +339,7 @@ namespace Arriba.Server.Application
                 throw new ArgumentNullException(nameof(createTable));
 
             if (string.IsNullOrWhiteSpace(createTable.TableName))
-                throw new ArgumentException("Invalid table name");            
+                throw new ArgumentException("Invalid table name");
 
             if (!ValidateCreateAccessForUser(user))
                 throw new ArribaAccessForbiddenException($"Create Table access denied.");
