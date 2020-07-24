@@ -25,5 +25,7 @@ namespace Arriba.Communication.Server.Application
         (bool, ExecutionDetails) SaveTableForUser(string tableName, IPrincipal user, VerificationLevel verificationLevel);
 
         void ReloadTableForUser(string tableName, IPrincipal user);
+
+        void DeleteTableForUser(string tableName, IPrincipal user);
     }
 }
