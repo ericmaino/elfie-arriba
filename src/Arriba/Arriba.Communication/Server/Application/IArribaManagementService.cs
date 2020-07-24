@@ -21,5 +21,7 @@ namespace Arriba.Communication.Server.Application
         TableInformation CreateTableForUser(CreateTableRequest table, IPrincipal user);
 
         void AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user);
+
+        (bool, ExecutionDetails) SaveTableForUser(string tableName, IPrincipal user, VerificationLevel verificationLevel);
     }
 }
