@@ -318,11 +318,7 @@ namespace Arriba.Server.Application
                 }
                 catch (Exception ex)
                 {
-                    if (ex is ArribaAccessForbiddenException)
-                        return ArribaResponse.Forbidden(ex.Message);
-
-                    return ArribaResponse.BadRequest(ex.Message);
-
+                    return ExceptionToArribaResponse(ex);
                 }
             }
 
@@ -413,14 +409,7 @@ namespace Arriba.Server.Application
                 }
                 catch (Exception ex)
                 {
-                    if (ex is ArribaAccessForbiddenException)
-                        return ArribaResponse.Forbidden(ex.Message);
-
-                    if (ex is TableNotFoundException)
-                        return ArribaResponse.NotFound(ex.Message);
-
-                    return ArribaResponse.BadRequest(ex.Message);
-
+                    return ExceptionToArribaResponse(ex);
                 }
 
                 return ArribaResponse.Created("Added");
@@ -519,6 +508,22 @@ namespace Arriba.Server.Application
 
             }
         }
+
+        private IResponse ExceptionToArribaResponse(Exception ex)
+        {
+            if (ex == null)
+                throw new ArgumentNullException(nameof(ex));
+
+            if (ex is ArribaAccessForbiddenException)
+                return ArribaResponse.Forbidden(ex.Message);
+
+            if (ex is TableNotFoundException)
+                return ArribaResponse.NotFound(ex.Message);
+
+            return ArribaResponse.BadRequest(ex.Message);
+        }
+
+
 
         /// <summary>
         /// Revokes access to a table. 
