@@ -329,23 +329,61 @@ namespace Arriba.Server.Application
         /// <summary>
         /// Add requested column(s) to the specified table.
         /// </summary>
+        /// <param name="tableName">Table name</param>
+        /// <param name="columnDetails">ColumnDetails List</param>
+        /// <param name="user">User requesting the operation</param>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="TableNotFoundException"></exception>
+        /// <exception cref="ArribaAccessForbiddenException"></exception>
+        void IArribaManagementService.AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user)
+        {
+            if (string.IsNullOrWhiteSpace(tableName))
+                throw new ArgumentException("Not Provided", nameof(tableName));
+
+            if (columnDetails == null || columnDetails.Count == 0)
+                throw new ArgumentException("Not Provided", nameof(columnDetails));
+
+            if (!Database.TableExists(tableName))
+            {
+                throw new TableNotFoundException($"Table {tableName} not found to Add Columns to.");
+            }
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("User not authorized");
+
+            Table table = this.Database[tableName];
+            table.AddColumns(columnDetails);
+
+        }
+
+        /// <summary>
+        /// Add requested column(s) to the specified table.
+        /// </summary>
         private async Task<IResponse> AddColumns(IRequestContext request, Route route)
         {
             string tableName = GetAndValidateTableName(route);
+            var user = request.Request.User;
 
             using (request.Monitor(MonitorEventLevel.Information, "AddColumn", type: "Table", identity: tableName))
             {
-                if (!Database.TableExists(tableName))
+                List<ColumnDetails> columns = await request.Request.ReadBodyAsync<List<ColumnDetails>>();
+                try
                 {
-                    return ArribaResponse.NotFound("Table not found to Add Columns to.");
+                    _service.AddColumnsToTableForUser(tableName, columns, user);
+                }
+                catch (Exception ex)
+                {
+                    if (ex is ArribaAccessForbiddenException)
+                        return ArribaResponse.Forbidden(ex.Message);
+
+                    if (ex is TableNotFoundException)
+                        return ArribaResponse.NotFound(ex.Message);
+
+                    return ArribaResponse.BadRequest(ex.Message);
+
                 }
 
-                Table table = this.Database[tableName];
-
-                List<ColumnDetails> columns = await request.Request.ReadBodyAsync<List<ColumnDetails>>();
-                table.AddColumns(columns);
-
-                return ArribaResponse.Ok("Added");
+                return ArribaResponse.Created("Added");
             }
         }
 
