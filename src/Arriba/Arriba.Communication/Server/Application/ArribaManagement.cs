@@ -387,20 +387,40 @@ namespace Arriba.Server.Application
             }
         }
 
+        void IArribaManagementService.ReloadTableForUser(string tableName, IPrincipal user)
+        {
+            if (string.IsNullOrWhiteSpace(tableName))
+                throw new ArgumentException("Not provided", nameof(tableName));
+
+            if (!this.Database.TableExists(tableName))
+                throw new TableNotFoundException($"Table {tableName} not found");
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Operation not authorized");
+
+            this.Database.ReloadTable(tableName);
+
+        }
+
         /// <summary>
         /// Reload the specified table.
         /// </summary>
         private IResponse Reload(IRequestContext request, Route route)
         {
             string tableName = GetAndValidateTableName(route);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to reload");
-            }
+            var user = request.Request.User;
 
             using (request.Monitor(MonitorEventLevel.Information, "Reload", type: "Table", identity: tableName))
             {
-                this.Database.ReloadTable(tableName);
+                try
+                {
+                    _service.ReloadTableForUser(tableName, user);
+                }
+                catch (Exception ex)
+                {
+                    return ExceptionToArribaResponse(ex);
+                }
+
                 return ArribaResponse.Ok("Reloaded");
             }
         }
