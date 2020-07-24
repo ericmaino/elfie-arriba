@@ -200,18 +200,37 @@ namespace Arriba.Server.Application
             return true;
         }
 
-        private IResponse Drop(IRequestContext ctx, Route route)
+        void IArribaManagementService.DeleteTableForUser(string tableName, IPrincipal user)
         {
-            var tableName = GetAndValidateTableName(route);
+            if (string.IsNullOrWhiteSpace(tableName))
+                throw new ArgumentException(tableName);
 
             if (!this.Database.TableExists(tableName))
             {
-                return ArribaResponse.NotFound();
+                throw new TableNotFoundException($"Table {tableName} not found");
             }
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("Operation not authorized");
+
+            this.Database.DropTable(tableName);
+        }
+
+        private IResponse Drop(IRequestContext ctx, Route route)
+        {
+            var tableName = GetAndValidateTableName(route);
+            var user = ctx.Request.User;
 
             using (ctx.Monitor(MonitorEventLevel.Information, "Drop", type: "Table", identity: tableName))
             {
-                this.Database.DropTable(tableName);
+                try
+                {
+                    _service.DeleteTableForUser(tableName, user);
+                }
+                catch (Exception ex)
+                {
+                    return ExceptionToArribaResponse(ex);
+                }
                 return ArribaResponse.Ok("Table deleted");
             }
         }
