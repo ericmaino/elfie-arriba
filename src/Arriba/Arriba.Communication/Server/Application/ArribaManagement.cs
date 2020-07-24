@@ -405,34 +405,58 @@ namespace Arriba.Server.Application
             }
         }
 
+        (bool, ExecutionDetails) IArribaManagementService.SaveTableForUser(string tableName, IPrincipal user, VerificationLevel verificationLevel)
+        {
+            bool tableSaved = false;
+
+            if (string.IsNullOrWhiteSpace(tableName))
+                throw new ArgumentException("Not provided", nameof(tableName));
+
+            if (!this.Database.TableExists(tableName))
+                throw new TableNotFoundException($"Table {tableName} not found");
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
+            Table table = this.Database[tableName];
+
+            ExecutionDetails executionDetails = new ExecutionDetails();
+            table.VerifyConsistency(verificationLevel, executionDetails);
+
+            if (executionDetails.Succeeded)
+            {
+                table.Save();
+                tableSaved = true;
+            }
+
+            return (tableSaved, executionDetails);
+        }
+
+
         /// <summary>
         /// Saves the specified table.
         /// </summary>
         private IResponse Save(IRequestContext request, Route route)
         {
             string tableName = GetAndValidateTableName(route);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to save");
-            }
 
             using (request.Monitor(MonitorEventLevel.Information, "Save", type: "Table", identity: tableName))
             {
-                Table t = this.Database[tableName];
-
-                // Verify before saving; don't save if inconsistent
-                ExecutionDetails d = new ExecutionDetails();
-                t.VerifyConsistency(VerificationLevel.Normal, d);
-
-                if (d.Succeeded)
+                try
                 {
-                    t.Save();
+                    var saveOperation = _service.SaveTableForUser(tableName, request.Request.User, VerificationLevel.Normal);
+
+                    if (!saveOperation.Item1)
+                    {
+                        return ArribaResponse.Error("Table state is inconsistent. Not saving. Restart server to reload. Errors: " + saveOperation.Item2.Errors);
+                    }
                     return ArribaResponse.Ok("Saved");
                 }
-                else
+                catch (Exception ex)
                 {
-                    return ArribaResponse.Error("Table state inconsistent. Not saving. Restart server to reload. Errors: " + d.Errors);
+                    return ExceptionToArribaResponse(ex);
                 }
+
             }
         }
 
