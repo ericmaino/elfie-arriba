@@ -7,6 +7,7 @@ using Arriba.Structures;
 using Arriba.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
@@ -230,7 +231,7 @@ namespace Arriba.Test.Services
         {
             Assert.ThrowsException<TableAlreadyExistsException>(() => _service.CreateTableForUser(new CreateTableRequest(tableName, 1000), _owner));
         }
-        
+
         private ClaimsPrincipal GetAuthenticatedUser(string userName, PermissionScope scope)
         {
             var identity = new ClaimsIdentity(new GenericIdentity(userName, AuthenticationType));
@@ -238,6 +239,69 @@ namespace Arriba.Test.Services
             var user = new ClaimsPrincipal(identity);
 
             return user;
+        }
+
+        [DataTestMethod]
+        [DataRow("foo")]
+        public void AddColumnsToTableForUserTableDoesntExist(string tableName)
+        {
+            var columnList = GetColumnDetailsList();
+            Assert.ThrowsException<TableNotFoundException>(() => _service.AddColumnsToTableForUser(tableName, columnList, _owner));
+        }
+
+        [DataTestMethod]
+        [DataRow("")]
+        [DataRow("  ")]
+        [DataRow(null)]
+        public void AddColumnsToTableForUserTableNameMissing(string tableName)
+        {
+            var columnList = GetColumnDetailsList();
+            Assert.ThrowsException<ArgumentException>(() => _service.AddColumnsToTableForUser(tableName, columnList, _owner));
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void AddColumnsToTableForUserNotAuthorized(string tableName)
+        {
+            var columnList = GetColumnDetailsList();
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.AddColumnsToTableForUser(tableName, columnList, _nonAuthenticatedUser));
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.AddColumnsToTableForUser(tableName, columnList, _reader));
+        }
+
+        private void CheckTableColumnsQuantity(string tableName, int expected)
+        {            
+            var table = _db[tableName];
+
+            Assert.AreEqual(expected, table.ColumnDetails.Count);
+        }
+
+        private void AddColumnsToTableForUser(string tableName, IPrincipal user)
+        {
+            CheckTableColumnsQuantity(tableName, 2);
+            var columnList = GetColumnDetailsList();
+            _service.AddColumnsToTableForUser(tableName, columnList, user);
+            CheckTableColumnsQuantity(tableName, 3);
+        }
+
+        private static List<ColumnDetails> GetColumnDetailsList()
+        {
+            var columnList = new List<ColumnDetails>();
+            columnList.Add(new ColumnDetails("Column", "string", ""));
+            return columnList;
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void AddColumnsToTableForUserOwner(string tableName)
+        {
+            AddColumnsToTableForUser(tableName, _owner);
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void AddColumnsToTableForUserWriter(string tableName)
+        {            
+            AddColumnsToTableForUser(tableName, _writer);
         }
 
     }
