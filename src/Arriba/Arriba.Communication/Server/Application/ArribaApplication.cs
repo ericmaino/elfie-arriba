@@ -130,6 +130,11 @@ namespace Arriba.Server
 
         }
 
+        protected bool ValidateDatabaseAccessForUser(IPrincipal user, PermissionScope scope)
+        {
+            return HasTableAccess(string.Empty, user, scope);
+        }
+
         protected bool ValidateTableAccessForUser(string tableName, IPrincipal user, PermissionScope scope)
         {
             if (!this.Database.TableExists(tableName))
