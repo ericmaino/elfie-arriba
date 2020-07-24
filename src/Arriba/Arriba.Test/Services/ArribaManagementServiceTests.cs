@@ -21,6 +21,8 @@ namespace Arriba.Test.Services
         private const string AuthenticationType = "TestAuthenticationType";
         private const string TableName = "Users";
 
+        private readonly SecureDatabase _db;
+
         private readonly ClaimsPrincipal _nonAuthenticatedUser;
         private readonly ClaimsPrincipal _owner;
         private readonly ClaimsPrincipal _reader;
@@ -30,7 +32,6 @@ namespace Arriba.Test.Services
         private readonly DatabaseFactory _databaseFactory;
         public ArribaManagementServiceTests()
         {
-            DeleteDatabaseTestTables();
             CreateTestDatabase(TableName);
 
             _nonAuthenticatedUser = new ClaimsPrincipal();
@@ -42,7 +43,8 @@ namespace Arriba.Test.Services
             var factory = new ArribaManagementServiceFactory(_databaseFactory);
 
             _service = factory.CreateArribaManagementService();
-        }
+            _db = _service.GetDatabaseForOwner(_owner);
+        }        
 
         private void CreateTestDatabase(string tableName)
         {
@@ -85,12 +87,12 @@ namespace Arriba.Test.Services
                 db.DropTable(tableName);
         }
 
-        private void DeleteDatabaseTestTables()
-        {
-            var db = new SecureDatabase();
-            foreach (var table in db.TableNames)
+        [TestCleanup]
+        public void DeleteDatabaseTestTables()
+        {            
+            foreach (var table in _db.TableNames)
             {
-                DeleteTable(db, table);
+                DeleteTable(_db, table);
             }
         }
 
@@ -210,18 +212,17 @@ namespace Arriba.Test.Services
         }
 
         private void CreateTableForUser(string table, IPrincipal user)
-        {
-            var db = new SecureDatabase();
+        {            
             var tableName = $"{table}_{user.Identity.Name}";
 
-            DeleteTable(db, tableName);
+            DeleteTable(_db, tableName);
 
             var tableOwner = _service.CreateTableForUser(new CreateTableRequest(tableName, 1000), user);
             Assert.IsNotNull(tableOwner);
             Assert.IsTrue(tableOwner.CanAdminister);
             Assert.IsTrue(tableOwner.CanWrite);
 
-            DeleteTable(db, tableName);
+            DeleteTable(_db, tableName);
 
         }
 
