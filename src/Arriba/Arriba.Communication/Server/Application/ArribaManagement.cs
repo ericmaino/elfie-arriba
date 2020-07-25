@@ -247,25 +247,45 @@ namespace Arriba.Server.Application
             return ArribaResponse.Ok(security);
         }
 
+        DeleteResult IArribaManagementService.DeleteTableRowsForUser(string tableName, string query, IPrincipal user)
+        {
+            if (string.IsNullOrWhiteSpace(tableName))
+                throw new ArgumentException("Not Provided", nameof(tableName));
+
+            if (string.IsNullOrWhiteSpace(query))
+                throw new ArgumentException("Not Provided", nameof(query));
+
+            if (!Database.TableExists(tableName))
+            {
+                throw new TableNotFoundException($"Table {tableName} not found");
+            }
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("User not authorized");
+
+            var table = this.Database[tableName];
+            var expression = SelectQuery.ParseWhere(query);
+            var correctExpression = this.CurrentCorrectors(user).Correct(expression);
+            return table.Delete(correctExpression);
+        }
+
 
         private IResponse DeleteRows(IRequestContext ctx, Route route)
         {
             string tableName = GetAndValidateTableName(route);
-            IExpression query = SelectQuery.ParseWhere(ctx.Request.ResourceParameters["q"]);
+            var query = ctx.Request.ResourceParameters["q"];
             var user = ctx.Request.User;
 
-            // Run server correctors
-            query = this.CurrentCorrectors(user).Correct(query);
-
-            if (!this.Database.TableExists(tableName))
+            try
             {
-                return ArribaResponse.NotFound();
+                var result = _service.DeleteTableRowsForUser(tableName, query, user);
+                return ArribaResponse.Ok(result.Count);
             }
-
-            Table table = this.Database[tableName];
-            DeleteResult result = table.Delete(query);
-
-            return ArribaResponse.Ok(result.Count);
+            catch(Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
+            }
+            
         }
 
         private async Task<IResponse> SetTablePermissions(IRequestContext request, Route route)
