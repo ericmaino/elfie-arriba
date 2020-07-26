@@ -6,6 +6,7 @@ using System.Text;
 namespace Arriba.TfsWorkItemCrawler.ItemProviders
 {
     using Arriba.Extensions;
+    using Arriba.ParametersCheckers;
     using Arriba.Serialization;
     using System;
 
@@ -16,7 +17,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
 
         public static IItemProvider Build(CrawlerConfiguration config)
         {
-            if (config == null) throw new ArgumentNullException("config", "config is null.");
+            ParamChecker.ThrowIfNull(config, nameof(config));
 
             switch (config.ItemProvider.ToLowerInvariant())
             {

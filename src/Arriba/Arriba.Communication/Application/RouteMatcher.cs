@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 using Arriba.Extensions;
+using Arriba.ParametersCheckers;
 
 namespace Arriba.Communication.Application
 {
@@ -23,10 +24,8 @@ namespace Arriba.Communication.Application
 
         public RouteMatcher(RequestVerb verb, RouteSpecification route)
         {
-            if (route == null)
-            {
-                throw new ArgumentNullException("route");
-            }
+            ParamChecker.ThrowIfNull(verb, nameof(verb));
+            ParamChecker.ThrowIfNull(route, nameof(route));
 
             this.Verb = verb;
             _routeString = SanatizeRoute(route.ResourceRoute);

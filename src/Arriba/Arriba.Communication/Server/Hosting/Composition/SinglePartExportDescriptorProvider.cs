@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Arriba.ParametersCheckers;
 using System;
 using System.Collections.Generic;
 using System.Composition.Hosting.Core;
@@ -19,7 +20,7 @@ namespace Arriba.Server.Hosting
 
         protected SinglePartExportDescriptorProvider(Type contractType, string contractName, IDictionary<string, object> metadata)
         {
-            if (contractType == null) throw new ArgumentNullException("contractType");
+            ParamChecker.ThrowIfNull(contractType, nameof(contractType));
 
             _contractType = contractType;
             _contractName = contractName;
