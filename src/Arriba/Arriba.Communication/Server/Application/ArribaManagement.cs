@@ -12,10 +12,10 @@ using Arriba.Communication.Application;
 using Arriba.Communication.Server.Application;
 using Arriba.Model;
 using Arriba.Model.Column;
-using Arriba.Model.Expressions;
 using Arriba.Model.Query;
 using Arriba.Model.Security;
 using Arriba.Monitoring;
+using Arriba.ParametersCheckers;
 using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
 using Arriba.Types;
@@ -138,6 +138,8 @@ namespace Arriba.Server.Application
 
         TableInformation IArribaManagementService.GetTableInformationForUser(string tableName, IPrincipal user)
         {
+            Database.ThrowIfTableNotFound(tableName);
+
             if (!HasTableAccess(tableName, user, PermissionScope.Reader))
                 return null;
 
@@ -184,6 +186,8 @@ namespace Arriba.Server.Application
 
         bool IArribaManagementService.UnloadTableForUser(string tableName, IPrincipal user)
         {
+            Database.ThrowIfTableNotFound(tableName);
+
             if (!this.HasTableAccess(tableName, user, PermissionScope.Writer))
                 return false;
 
@@ -210,13 +214,8 @@ namespace Arriba.Server.Application
 
         void IArribaManagementService.DeleteTableForUser(string tableName, IPrincipal user)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-                throw new ArgumentException(tableName);
-
-            if (!this.Database.TableExists(tableName))
-            {
-                throw new TableNotFoundException($"Table {tableName} not found");
-            }
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            Database.ThrowIfTableNotFound(tableName);
 
             if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
                 throw new ArribaAccessForbiddenException("Operation not authorized");
@@ -257,16 +256,9 @@ namespace Arriba.Server.Application
 
         DeleteResult IArribaManagementService.DeleteTableRowsForUser(string tableName, string query, IPrincipal user)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-                throw new ArgumentException("Not Provided", nameof(tableName));
-
-            if (string.IsNullOrWhiteSpace(query))
-                throw new ArgumentException("Not Provided", nameof(query));
-
-            if (!Database.TableExists(tableName))
-            {
-                throw new TableNotFoundException($"Table {tableName} not found");
-            }
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            query.ThrowIfNullOrWhiteSpaced(nameof(query));
+            Database.ThrowIfTableNotFound(tableName);
 
             if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
                 throw new ArribaAccessForbiddenException("User not authorized");
@@ -289,11 +281,11 @@ namespace Arriba.Server.Application
                 var result = _service.DeleteTableRowsForUser(tableName, query, user);
                 return ArribaResponse.Ok(result.Count);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return ExceptionToArribaResponse(ex);
             }
-            
+
         }
 
         private async Task<IResponse> SetTablePermissions(IRequestContext request, Route route)
@@ -335,19 +327,13 @@ namespace Arriba.Server.Application
 
         TableInformation IArribaManagementService.CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
         {
-            if (createTable == null)
-                throw new ArgumentNullException(nameof(createTable));
-
-            if (string.IsNullOrWhiteSpace(createTable.TableName))
-                throw new ArgumentException("Invalid table name");
+            ParamChecker.ThrowIfNull(createTable, nameof(createTable));
+            createTable.TableName.ThrowIfNullOrWhiteSpaced(nameof(createTable));
 
             if (!ValidateCreateAccessForUser(user))
                 throw new ArribaAccessForbiddenException($"Create Table access denied.");
 
-            if (this.Database.TableExists(createTable.TableName))
-            {
-                throw new TableAlreadyExistsException($"Table {createTable.TableName} already exists");
-            }
+            Database.ThrowIfTableAlreadyExists(createTable.TableName);
 
             var table = this.Database.AddTable(createTable.TableName, createTable.ItemCountLimit);
 
@@ -381,16 +367,14 @@ namespace Arriba.Server.Application
         /// <exception cref="ArribaAccessForbiddenException"></exception>
         void IArribaManagementService.AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-                throw new ArgumentException("Not Provided", nameof(tableName));
 
-            if (columnDetails == null || columnDetails.Count == 0)
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            ParamChecker.ThrowIfNull(columnDetails, nameof(columnDetails));
+
+            if (columnDetails.Count == 0)
                 throw new ArgumentException("Not Provided", nameof(columnDetails));
 
-            if (!Database.TableExists(tableName))
-            {
-                throw new TableNotFoundException($"Table {tableName} not found to Add Columns to.");
-            }
+            Database.ThrowIfTableNotFound(tableName);
 
             if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
                 throw new ArribaAccessForbiddenException("User not authorized");
@@ -426,11 +410,8 @@ namespace Arriba.Server.Application
 
         void IArribaManagementService.ReloadTableForUser(string tableName, IPrincipal user)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-                throw new ArgumentException("Not provided", nameof(tableName));
-
-            if (!this.Database.TableExists(tableName))
-                throw new TableNotFoundException($"Table {tableName} not found");
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            Database.ThrowIfTableNotFound(tableName);
 
             if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
                 throw new ArribaAccessForbiddenException("Operation not authorized");
@@ -466,11 +447,8 @@ namespace Arriba.Server.Application
         {
             bool tableSaved = false;
 
-            if (string.IsNullOrWhiteSpace(tableName))
-                throw new ArgumentException("Not provided", nameof(tableName));
-
-            if (!this.Database.TableExists(tableName))
-                throw new TableNotFoundException($"Table {tableName} not found");
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            Database.ThrowIfTableNotFound(tableName);
 
             if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
                 throw new ArribaAccessForbiddenException("Not authorized");
@@ -519,8 +497,7 @@ namespace Arriba.Server.Application
 
         private IResponse ExceptionToArribaResponse(Exception ex)
         {
-            if (ex == null)
-                throw new ArgumentNullException(nameof(ex));
+            ParamChecker.ThrowIfNull(ex, nameof(ex));
 
             if (ex is ArribaAccessForbiddenException)
                 return ArribaResponse.Forbidden(ex.Message);
@@ -533,10 +510,10 @@ namespace Arriba.Server.Application
 
         private void CheckAuthorizationPreCondition(string tableName, SecurityIdentity securityIdentity, IPrincipal user)
         {
-            ParamChecker.ThrowIfNullOrWhiteSpaced(tableName, nameof(tableName));
-            ParamChecker.ThrowIfTableNotFound(this.Database, tableName);
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            Database.ThrowIfTableNotFound(tableName);
             ParamChecker.ThrowIfNull(securityIdentity, nameof(securityIdentity));
-            ParamChecker.ThrowIfNullOrWhiteSpaced(securityIdentity.Name, nameof(securityIdentity.Name));
+            securityIdentity.Name.ThrowIfNullOrWhiteSpaced(nameof(securityIdentity.Name));
 
             if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Owner))
                 throw new ArribaAccessForbiddenException("Operation not authorized");

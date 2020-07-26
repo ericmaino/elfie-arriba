@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Arriba.ParametersCheckers;
 using System;
 using System.Composition;
 using System.Diagnostics;
@@ -26,18 +27,8 @@ namespace Arriba.Server.Authentication
         /// <returns>True if the user is in the specified role, otherwise false.</returns>
         public bool IsUserInGroup(IPrincipal principal, string roleName)
         {
-            if (principal == null)
-            {
-                throw new ArgumentNullException("principal");
-            }
-            else if (roleName == null)
-            {
-                throw new ArgumentNullException("roleName");
-            }
-            else if (roleName.Length == 0)
-            {
-                throw new ArgumentException("Role name should not be empty", "roleName");
-            }
+            principal.ThrowIfNull(nameof(principal));
+            roleName.ThrowIfNullOrWhiteSpaced(nameof(roleName));
 
             ClaimsPrincipal cPrincipal = principal as ClaimsPrincipal;
 
