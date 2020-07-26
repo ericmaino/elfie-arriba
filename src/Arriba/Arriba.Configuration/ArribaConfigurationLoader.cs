@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Arriba.ParametersCheckers;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -19,7 +20,7 @@ namespace Arriba.Configuration
 
         public ArribaConfigurationLoader(IConfigurationRoot configuration)
         {
-            if (configuration == null) throw new ArgumentNullException(nameof(configuration));
+            ParamChecker.ThrowIfNull(configuration, nameof(configuration));
 
             this.configuration = configuration;
             configurationBuilder = new ConfigurationBuilder();
@@ -27,7 +28,7 @@ namespace Arriba.Configuration
 
         public ArribaConfigurationLoader(string[] args, string basePath = "")
         {
-            if (args == null) throw new ArgumentNullException(nameof(args));
+            ParamChecker.ThrowIfNull(args, nameof(args));
 
             if (string.IsNullOrWhiteSpace(basePath))
                 basePath = Directory.GetCurrentDirectory();

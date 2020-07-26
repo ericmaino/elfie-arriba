@@ -9,6 +9,7 @@ using System.Threading;
 
 using Arriba.Extensions;
 using Arriba.Model.Query;
+using Arriba.ParametersCheckers;
 using Arriba.Serialization;
 
 namespace Arriba.Model
@@ -54,7 +55,7 @@ namespace Arriba.Model
 
         public Table AddTable(string tableName, long itemCountLimit)
         {
-            if (tableName == null) throw new ArgumentNullException("tableName");
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
 
             if (tableName.StartsWith(SystemTablePrefix, StringComparison.OrdinalIgnoreCase))
             {

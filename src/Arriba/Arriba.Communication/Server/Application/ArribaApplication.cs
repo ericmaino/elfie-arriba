@@ -13,6 +13,7 @@ using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.Model.Security;
 using Arriba.Monitoring;
+using Arriba.ParametersCheckers;
 using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
 
@@ -27,6 +28,9 @@ namespace Arriba.Server
         [ImportingConstructor]
         protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth)
         {
+            ParamChecker.ThrowIfNull(factory, nameof(factory));
+            ParamChecker.ThrowIfNull(claimsAuth, nameof(claimsAuth));
+
             this.EventSource = EventPublisher.CreateEventSource(this.GetType().Name);
             this.Database = factory.GetDatabase();
             _claimsAuth = claimsAuth;
@@ -56,8 +60,7 @@ namespace Arriba.Server
         /// <returns></returns>
         protected ICorrector CurrentCorrectors(IPrincipal user)
         {
-            if (user == null)
-                throw new ArgumentNullException(nameof(user));
+            user.ThrowIfNull(nameof(user));
 
             if (user.Identity == null)
                 throw new ArgumentException("User has no identity", nameof(user));
@@ -137,11 +140,8 @@ namespace Arriba.Server
 
         protected bool ValidateTableAccessForUser(string tableName, IPrincipal user, PermissionScope scope)
         {
-            if (!this.Database.TableExists(tableName))
-            {
-                throw new TableNotFoundException($"Table {tableName} does not exist.");
-            }
-
+            ParamChecker.ThrowIfTableNotFound(this.Database, tableName);
+            
             return HasTableAccess(tableName, user, scope);
         }
 
@@ -169,10 +169,7 @@ namespace Arriba.Server
         protected IResponse ValidateTableAccess(IRequestContext ctx, Route routeData, PermissionScope scope, bool overrideLocalHostSameUser = false)
         {
             string tableName = GetAndValidateTableName(routeData);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table requested does not exist.");
-            }
+            Database.ThrowIfTableNotFound(tableName);
 
             var currentUser = ctx.Request.User;
 
@@ -280,11 +277,8 @@ namespace Arriba.Server
         {
             string tableName = route["tableName"];
 
-            if (String.IsNullOrEmpty(tableName))
-            {
-                throw new ArgumentException("No table name specified in route");
-            }
-
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            
             return tableName;
         }
 

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Arriba.ParametersCheckers;
 using System;
 using System.Collections.Generic;
 using System.Composition.Hosting.Core;
@@ -18,7 +19,7 @@ namespace Arriba.Server.Hosting
         public InstanceExportDescriptorProvider(object exportedInstance, Type contractType, string contractName, IDictionary<string, object> metadata)
             : base(contractType, contractName, metadata)
         {
-            if (exportedInstance == null) throw new ArgumentNullException("exportedInstance");
+            ParamChecker.ThrowIfNull(exportedInstance, nameof(exportedInstance));
             _exportedInstance = exportedInstance;
         }
 
