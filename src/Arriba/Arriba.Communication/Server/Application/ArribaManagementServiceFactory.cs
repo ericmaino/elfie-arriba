@@ -1,4 +1,5 @@
-﻿using Arriba.Server.Application;
+﻿using Arriba.ParametersCheckers;
+using Arriba.Server.Application;
 using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
 using System;
@@ -12,7 +13,7 @@ namespace Arriba.Communication.Server.Application
         
         public ArribaManagementServiceFactory(DatabaseFactory databaseFactory)
         {
-            if (databaseFactory == null) throw new ArgumentNullException(nameof(databaseFactory));
+            ParamChecker.ThrowIfNull(databaseFactory, nameof(databaseFactory));
             
             this.databaseFactory = databaseFactory;
             claimsAuthenticationService = new ClaimsAuthenticationService();

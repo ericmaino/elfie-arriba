@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Arriba.ParametersCheckers;
 using System;
 
 namespace Arriba.TfsWorkItemCrawler.ItemConsumers
@@ -9,7 +10,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemConsumers
     {
         public static IItemConsumer Build(CrawlerConfiguration config)
         {
-            if (config == null) throw new ArgumentNullException("config", "config is null.");
+            ParamChecker.ThrowIfNull(config, nameof(config));
 
             switch (config.ItemConsumer.ToLowerInvariant())
             {
