@@ -534,36 +534,46 @@ namespace Arriba.Server.Application
             return ArribaResponse.Ok("Revoked");
         }
 
+        void IArribaManagementService.GrantAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
+        {
+            ParamChecker.ThrowIfNullOrWhiteSpaced(tableName, nameof(tableName));
+            ParamChecker.ThrowIfTableNotFound(this.Database, tableName);
+            ParamChecker.ThrowIfNull(securityIdentity, nameof(securityIdentity));
+            ParamChecker.ThrowIfNullOrWhiteSpaced(securityIdentity.Name, nameof(securityIdentity.Name));
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Owner))
+                throw new ArribaAccessForbiddenException("Operation not authorized");
+
+            SecurityPermissions security = this.Database.Security(tableName);
+            security.Grant(securityIdentity.Scope, securityIdentity.Name, scope);
+
+            // Save permissions
+            this.Database.SaveSecurity(tableName);
+        }
+
         /// <summary>
         /// Grants access to a table. 
         /// </summary>
         private async Task<IResponse> Grant(IRequestContext request, Route route)
         {
+            var user = request.Request.User;
             string tableName = GetAndValidateTableName(route);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to grant permission on.");
-            }
-
             var identity = await request.Request.ReadBodyAsync<SecurityIdentity>();
-            if (String.IsNullOrEmpty(identity.Name))
-            {
-                return ArribaResponse.BadRequest("Identity name must not be empty");
-            }
 
-            PermissionScope scope;
-            if (!Enum.TryParse<PermissionScope>(route["scope"], true, out scope))
+            if (!Enum.TryParse<PermissionScope>(route["scope"], true, out var scope))
             {
                 return ArribaResponse.BadRequest("Unknown permission scope {0}", route["scope"]);
             }
 
             using (request.Monitor(MonitorEventLevel.Information, "GrantPermission", type: "Table", identity: tableName, detail: new { Scope = scope, Identity = identity }))
             {
-                SecurityPermissions security = this.Database.Security(tableName);
-                security.Grant(identity.Scope, identity.Name, scope);
-
-                // Save permissions
-                this.Database.SaveSecurity(tableName);
+                try
+                {
+                    _service.GrantAccessForUser(tableName, identity, scope, user);
+                }catch(Exception ex)
+                {
+                    return ExceptionToArribaResponse(ex);
+                }
             }
 
             return ArribaResponse.Ok("Granted");
