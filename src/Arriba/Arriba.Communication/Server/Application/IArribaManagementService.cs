@@ -1,6 +1,7 @@
 ﻿using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Query;
+using Arriba.Model.Security;
 using Arriba.Types;
 using System.Collections.Generic;
 using System.Security.Principal;
@@ -30,5 +31,7 @@ namespace Arriba.Communication.Server.Application
         void DeleteTableForUser(string tableName, IPrincipal user);
 
         DeleteResult DeleteTableRowsForUser(string tableName, string query, IPrincipal user);
+
+        void GrantAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user);
     }
 }
