@@ -45,7 +45,7 @@ namespace Arriba.Test.Services
 
             _service = factory.CreateArribaManagementService();
             _db = _service.GetDatabaseForOwner(_owner);
-        }        
+        }
 
         private void CreateTestDatabase(string tableName)
         {
@@ -90,7 +90,7 @@ namespace Arriba.Test.Services
 
         [TestCleanup]
         public void DeleteDatabaseTestTables()
-        {            
+        {
             foreach (var table in _db.TableNames)
             {
                 DeleteTable(_db, table);
@@ -213,7 +213,7 @@ namespace Arriba.Test.Services
         }
 
         private void CreateTableForUser(string table, IPrincipal user)
-        {            
+        {
             var tableName = $"{table}_{user.Identity.Name}";
 
             DeleteTable(_db, tableName);
@@ -271,7 +271,7 @@ namespace Arriba.Test.Services
         }
 
         private void CheckTableColumnsQuantity(string tableName, int expected)
-        {            
+        {
             var table = _db[tableName];
 
             Assert.AreEqual(expected, table.ColumnDetails.Count);
@@ -302,7 +302,7 @@ namespace Arriba.Test.Services
         [DataTestMethod]
         [DataRow(TableName)]
         public void AddColumnsToTableForUserWriter(string tableName)
-        {            
+        {
             AddColumnsToTableForUser(tableName, _writer);
         }
 
@@ -373,9 +373,9 @@ namespace Arriba.Test.Services
         [DataRow(TableName)]
         public void ReloadTableForUserUnauthorizedUser(string tableName)
         {
-            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.ReloadTableForUser(tableName, _nonAuthenticatedUser));            
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.ReloadTableForUser(tableName, _nonAuthenticatedUser));
         }
-                
+
         [DataTestMethod]
         [DataRow(TableName)]
         public void ReloadTableForUser(string tableName)
@@ -479,6 +479,67 @@ namespace Arriba.Test.Services
                 Assert.AreEqual(countBefore - result.Count, table.Count);
             else
                 Assert.AreEqual(countBefore, table.Count);
+        }
+
+        [DataTestMethod]
+        [DataRow("foo")]
+        public void GrantAccessForUserTableNotFound(string tableName)
+        {
+            var identity = new SecurityIdentity(IdentityScope.Group, "table readers");
+            Assert.ThrowsException<TableNotFoundException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
+        }
+
+        [DataTestMethod]
+        [DataRow(null)]
+        [DataRow("  ")]
+        [DataRow("")]
+        public void GrantAccessForUserTableNameMissing(string tableName)
+        {
+            var identity = new SecurityIdentity(IdentityScope.Group, "table readers");
+            Assert.ThrowsException<ArgumentException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName, IdentityScope.Group, " ")]
+        public void GrantAccessForUserSecurityIdendityMissing(string tableName, IdentityScope scope, string identityName)
+        {
+            var identity = new SecurityIdentity(scope, identityName);
+            Assert.ThrowsException<ArgumentException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName)]
+        public void GrantAccessForUserUnauthorizedUser(string tableName)
+        {
+            var identity = new SecurityIdentity(IdentityScope.Group, "table readers");
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _nonAuthenticatedUser));
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _reader));
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _writer));
+        }
+
+        [DataTestMethod]
+        [DataRow(TableName, IdentityScope.Group, "group1", PermissionScope.Reader)]
+        [DataRow(TableName, IdentityScope.User, "user5", PermissionScope.Writer)]
+        [DataRow(TableName, IdentityScope.Group, "group4", PermissionScope.Owner)]
+        public void GrantAccessForUserOwner(string tableName, IdentityScope scope, string identityName, PermissionScope permissionScope)
+        {
+            var countBefore = GetPermissionScopeQuantity(tableName, permissionScope);
+            var identity = new SecurityIdentity(scope, identityName);
+            _service.GrantAccessForUser(tableName, identity, permissionScope, _owner);
+            var countAfter = GetPermissionScopeQuantity(tableName, permissionScope);
+            Assert.IsTrue(countBefore < countAfter);
+        }
+
+        private int GetPermissionScopeQuantity(string tableName, PermissionScope permissionScope)
+        {
+            var security = _db.Security(tableName);
+            switch (permissionScope)
+            {
+                case PermissionScope.Reader: return security.Readers.Count;
+                case PermissionScope.Writer: return security.Writers.Count;
+                case PermissionScope.Owner: return security.Owners.Count;
+            }
+            throw new ArribaException("Permission Scope not handled!");
         }
 
     }
