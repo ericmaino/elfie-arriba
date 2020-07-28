@@ -531,44 +531,7 @@ namespace Arriba.Server.Application
             return ArribaResponse.BadRequest(ex.Message);
         }
 
-
-
-        /// <summary>
-        /// Revokes access to a table. 
-        /// </summary>
-        private async Task<IResponse> Revoke(IRequestContext request, Route route)
-        {
-            string tableName = GetAndValidateTableName(route);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to revoke permission on.");
-            }
-
-            var identity = await request.Request.ReadBodyAsync<SecurityIdentity>();
-            if (String.IsNullOrEmpty(identity.Name))
-            {
-                return ArribaResponse.BadRequest("Identity name must not be empty");
-            }
-
-            PermissionScope scope;
-            if (!Enum.TryParse<PermissionScope>(route["scope"], true, out scope))
-            {
-                return ArribaResponse.BadRequest("Unknown permission scope {0}", route["scope"]);
-            }
-
-            using (request.Monitor(MonitorEventLevel.Information, "RevokePermission", type: "Table", identity: tableName, detail: new { Scope = scope, Identity = identity }))
-            {
-                SecurityPermissions security = this.Database.Security(tableName);
-                security.Revoke(identity, scope);
-
-                // Save permissions
-                this.Database.SaveSecurity(tableName);
-            }
-
-            return ArribaResponse.Ok("Revoked");
-        }
-
-        void IArribaManagementService.GrantAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
+        private void CheckAuthorizationPreCondition(string tableName, SecurityIdentity securityIdentity, IPrincipal user)
         {
             ParamChecker.ThrowIfNullOrWhiteSpaced(tableName, nameof(tableName));
             ParamChecker.ThrowIfTableNotFound(this.Database, tableName);
@@ -577,6 +540,69 @@ namespace Arriba.Server.Application
 
             if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Owner))
                 throw new ArribaAccessForbiddenException("Operation not authorized");
+        }
+
+        void IArribaManagementService.RevokeAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
+        {
+            CheckAuthorizationPreCondition(tableName, securityIdentity, user);
+
+            SecurityPermissions security = this.Database.Security(tableName);
+            security.Revoke(securityIdentity.Scope, securityIdentity.Name, scope);
+
+            this.Database.SaveSecurity(tableName);
+        }
+
+        private enum AuthorizationOperation
+        {
+            Grant = 1,
+            Revoke = 2
+        }
+
+        private async Task<IResponse> ExecuteAuthorizaitonPermission(AuthorizationOperation operation, IRequestContext request, Route route)
+        {
+            var user = request.Request.User;
+            string tableName = GetAndValidateTableName(route);
+            var identity = await request.Request.ReadBodyAsync<SecurityIdentity>();
+
+            if (!Enum.TryParse<PermissionScope>(route["scope"], true, out var scope))
+            {
+                return ArribaResponse.BadRequest("Unknown permission scope {0}", route["scope"]);
+            }
+
+            using (request.Monitor(MonitorEventLevel.Information, $"{operation}Permission", type: "Table", identity: tableName, detail: new { Scope = scope, Identity = identity }))
+            {
+                try
+                {
+                    if (operation == AuthorizationOperation.Grant)
+                        _service.GrantAccessForUser(tableName, identity, scope, user);
+                    else
+                        _service.RevokeAccessForUser(tableName, identity, scope, user);
+                }
+                catch (Exception ex)
+                {
+                    return ExceptionToArribaResponse(ex);
+                }
+                SecurityPermissions security = this.Database.Security(tableName);
+                security.Revoke(identity, scope);
+
+                // Save permissions
+                this.Database.SaveSecurity(tableName);
+            }
+
+            return ArribaResponse.Ok($"{operation} successed");
+        }
+
+        /// <summary>
+        /// Revokes access to a table. 
+        /// </summary>
+        private async Task<IResponse> Revoke(IRequestContext request, Route route)
+        {
+            return await ExecuteAuthorizaitonPermission(AuthorizationOperation.Revoke, request, route);
+        }
+
+        void IArribaManagementService.GrantAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
+        {
+            CheckAuthorizationPreCondition(tableName, securityIdentity, user);
 
             SecurityPermissions security = this.Database.Security(tableName);
             security.Grant(securityIdentity.Scope, securityIdentity.Name, scope);
@@ -590,27 +616,7 @@ namespace Arriba.Server.Application
         /// </summary>
         private async Task<IResponse> Grant(IRequestContext request, Route route)
         {
-            var user = request.Request.User;
-            string tableName = GetAndValidateTableName(route);
-            var identity = await request.Request.ReadBodyAsync<SecurityIdentity>();
-
-            if (!Enum.TryParse<PermissionScope>(route["scope"], true, out var scope))
-            {
-                return ArribaResponse.BadRequest("Unknown permission scope {0}", route["scope"]);
-            }
-
-            using (request.Monitor(MonitorEventLevel.Information, "GrantPermission", type: "Table", identity: tableName, detail: new { Scope = scope, Identity = identity }))
-            {
-                try
-                {
-                    _service.GrantAccessForUser(tableName, identity, scope, user);
-                }catch(Exception ex)
-                {
-                    return ExceptionToArribaResponse(ex);
-                }
-            }
-
-            return ArribaResponse.Ok("Granted");
+            return await ExecuteAuthorizaitonPermission(AuthorizationOperation.Revoke, request, route);
         }
 
         private static string SanitizeIdentity(string rawIdentity)
