@@ -33,5 +33,8 @@ namespace Arriba.Communication.Server.Application
         DeleteResult DeleteTableRowsForUser(string tableName, string query, IPrincipal user);
 
         void GrantAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user);
+
+        void RevokeAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user);
+
     }
 }
