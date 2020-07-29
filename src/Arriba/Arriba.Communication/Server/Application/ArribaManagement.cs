@@ -38,37 +38,37 @@ namespace Arriba.Server.Application
 
             this.Get("/allBasics", this.GetAllBasics);
 
-            this.Get("/unloadAll", this.ValidateCreateAccess, this.UnloadAll);
+            this.Get("/unloadAll", this.UnloadAll);
 
             // GET /table/foo - Get table information 
-            this.Get("/table/:tableName", this.ValidateReadAccess, this.GetTableInformation);
+            this.Get("/table/:tableName", this.GetTableInformation);
 
             // POST /table with create table payload (Must be Writer/Owner in security directly in DiskCache folder, or identity running service)
-            this.PostAsync("/table", this.ValidateCreateAccessAsync, this.ValidateBodyAsync, this.CreateNew);
+            this.PostAsync("/table", this.CreateNew);
 
             // POST /table/foo/addcolumns
-            this.PostAsync("/table/:tableName/addcolumns", this.ValidateWriteAccessAsync, this.AddColumns);
+            this.PostAsync("/table/:tableName/addcolumns", this.AddColumns);
 
             // GET /table/foo/save -- TODO: This is not ideal, think of a better pattern 
-            this.Get("/table/:tableName/save", this.ValidateWriteAccess, this.Save);
+            this.Get("/table/:tableName/save", this.Save);
 
             // Unload/Reload
-            this.Get("/table/:tableName/unload", this.ValidateWriteAccess, this.UnloadTable);
-            this.Get("/table/:tableName/reload", this.ValidateWriteAccess, this.Reload);
+            this.Get("/table/:tableName/unload", this.UnloadTable);
+            this.Get("/table/:tableName/reload", this.Reload);
 
             // DELETE /table/foo 
-            this.Delete("/table/:tableName", this.ValidateOwnerAccess, this.Drop);
-            this.Get("/table/:tableName/delete", this.ValidateOwnerAccess, this.Drop);
+            this.Delete("/table/:tableName", this.Drop);
+            this.Get("/table/:tableName/delete", this.Drop);
 
             // POST /table/foo?action=delete
-            this.Get(new RouteSpecification("/table/:tableName", new UrlParameter("action", "delete")), this.ValidateWriteAccess, this.DeleteRows);
-            this.Post(new RouteSpecification("/table/:tableName", new UrlParameter("action", "delete")), this.ValidateWriteAccess, this.DeleteRows);
+            this.Get(new RouteSpecification("/table/:tableName", new UrlParameter("action", "delete")), this.DeleteRows);
+            this.Post(new RouteSpecification("/table/:tableName", new UrlParameter("action", "delete")), this.DeleteRows);
 
             // POST /table/foo/permissions/user - add permissions 
-            this.PostAsync("/table/:tableName/permissions/:scope", this.ValidateOwnerAccessAsync, this.ValidateBodyAsync, this.Grant);
+            this.PostAsync("/table/:tableName/permissions/:scope", this.Grant);
 
             // DELETE /table/foo/permissions/user - remove permissions from table 
-            this.DeleteAsync("/table/:tableName/permissions/:scope", this.ValidateOwnerAccessAsync, this.ValidateBodyAsync, this.Revoke);
+            this.DeleteAsync("/table/:tableName/permissions/:scope", this.Revoke);
 
             // NOTE: _SPECIAL_ permission for localhost users, will override current auth to always be valid.
             // this enables tables recovery from local machine for matching user as the process. 
