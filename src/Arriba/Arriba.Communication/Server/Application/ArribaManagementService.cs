@@ -1,8 +1,10 @@
 ﻿using Arriba.Communication.Server.Authorization;
 using Arriba.Model;
 using Arriba.Model.Column;
+using Arriba.Model.Correctors;
 using Arriba.Model.Query;
 using Arriba.Model.Security;
+using Arriba.ParametersCheckers;
 using Arriba.Types;
 using System;
 using System.Collections.Generic;
@@ -14,11 +16,24 @@ namespace Arriba.Communication.Server.Application
     {
         private readonly SecureDatabase _database;
         private readonly IArribaAuthorization _arribaAuthorization;
+        private readonly ComposedCorrector _correctors;
 
-        public ArribaManagementService(SecureDatabase secureDatabase)
+        public ArribaManagementService(SecureDatabase secureDatabase, ComposedCorrector composedCorrector)
         {
             _database = secureDatabase;
             _arribaAuthorization = new ArribaAuthorization(_database);
+            _correctors = composedCorrector;
+        }
+
+        private ICorrector CurrentCorrectors(IPrincipal user)
+        {
+            user.ThrowIfNull(nameof(user));
+
+            if (user.Identity == null)
+                throw new ArgumentException("User has no identity", nameof(user));
+
+            // Add the 'MeCorrector' for the requesting user (must be first, to chain with the UserAliasCorrector)
+            return new ComposedCorrector(new MeCorrector(user.Identity.Name), _correctors);
         }
 
         public void AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user)
@@ -26,29 +41,107 @@ namespace Arriba.Communication.Server.Application
             throw new NotImplementedException();
         }
 
-        public TableInformation CreateTableForUser(CreateTableRequest table, IPrincipal user)
+        public TableInformation CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
         {
-            throw new NotImplementedException();
+            ParamChecker.ThrowIfNull(createTable, nameof(createTable));
+            createTable.TableName.ThrowIfNullOrWhiteSpaced(nameof(createTable));
+
+            if (!_arribaAuthorization.ValidateCreateAccessForUser(user))
+                throw new ArribaAccessForbiddenException($"Create Table access denied.");
+
+            _database.ThrowIfTableAlreadyExists(createTable.TableName);
+
+            var table = _database.AddTable(createTable.TableName, createTable.ItemCountLimit);
+
+            // Add columns from request
+            table.AddColumns(createTable.Columns);
+
+            // Include permissions from request
+            if (createTable.Permissions != null)
+            {
+                // Ensure the creating user is always an owner
+                createTable.Permissions.Grant(IdentityScope.User, user.Identity.Name, PermissionScope.Owner);
+
+                _database.SetSecurity(createTable.TableName, createTable.Permissions);
+            }
+
+            // Save, so that table existence, column definitions, and permissions are saved
+            table.Save();
+            _database.SaveSecurity(createTable.TableName);
+
+            return GetTableInformationForUser(createTable.TableName, user);
         }
 
         public void DeleteTableForUser(string tableName, IPrincipal user)
         {
-            throw new NotImplementedException();
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            _database.ThrowIfTableNotFound(tableName);
+
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("Operation not authorized");
+
+            _database.DropTable(tableName);
         }
 
         public DeleteResult DeleteTableRowsForUser(string tableName, string query, IPrincipal user)
         {
-            throw new NotImplementedException();
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            query.ThrowIfNullOrWhiteSpaced(nameof(query));
+            _database.ThrowIfTableNotFound(tableName);
+
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("User not authorized");
+
+            var table = _database[tableName];
+            var expression = SelectQuery.ParseWhere(query);
+            var correctExpression = this.CurrentCorrectors(user).Correct(expression);
+            return table.Delete(correctExpression);
         }
 
         public SecureDatabase GetDatabaseForOwner(IPrincipal user)
         {
-            throw new NotImplementedException();
+            if (! _arribaAuthorization.ValidateDatabaseAccessForUser(user, PermissionScope.Owner))
+                throw new ArribaAccessForbiddenException("User has no be an owner to retrieve the database");
+
+            return _database;
         }
 
         public TableInformation GetTableInformationForUser(string tableName, IPrincipal user)
         {
-            throw new NotImplementedException();
+            _database.ThrowIfTableNotFound(tableName);
+
+            if (!_arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Reader))
+                return null;
+
+            var table = this._database[tableName];
+
+            if (table == null)
+                return null;
+
+            TableInformation ti = new TableInformation();
+            ti.Name = tableName;
+            ti.PartitionCount = table.PartitionCount;
+            ti.RowCount = table.Count;
+            ti.LastWriteTimeUtc = table.LastWriteTimeUtc;
+            ti.CanWrite = _arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Writer);
+            ti.CanAdminister = _arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Owner);
+
+            IList<string> restrictedColumns = _database.GetRestrictedColumns(tableName, (si) => _arribaAuthorization.IsInIdentity(user, si));
+            if (restrictedColumns == null)
+            {
+                ti.Columns = table.ColumnDetails;
+            }
+            else
+            {
+                List<ColumnDetails> allowedColumns = new List<ColumnDetails>();
+                foreach (ColumnDetails column in table.ColumnDetails)
+                {
+                    if (!restrictedColumns.Contains(column.Name)) allowedColumns.Add(column);
+                }
+                ti.Columns = allowedColumns;
+            }
+
+            return ti;
         }
 
         public IEnumerable<string> GetTables()
@@ -58,37 +151,105 @@ namespace Arriba.Communication.Server.Application
 
         public IDictionary<string, TableInformation> GetTablesForUser(IPrincipal user)
         {
-            throw new NotImplementedException();
+            IDictionary<string, TableInformation> allBasics = new Dictionary<string, TableInformation>();
+            foreach (string tableName in _database.TableNames)
+            {
+                if (_arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Reader))
+                {
+                    allBasics[tableName] = GetTableInformationForUser(tableName, user);
+                }
+            }
+
+            return allBasics;
         }
 
         public void GrantAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
         {
-            throw new NotImplementedException();
+            CheckAuthorizationPreCondition(tableName, securityIdentity, user);
+
+            SecurityPermissions security = _database.Security(tableName);
+            security.Grant(securityIdentity.Scope, securityIdentity.Name, scope);
+
+            // Save permissions
+            _database.SaveSecurity(tableName);
+        }
+
+        private void CheckAuthorizationPreCondition(string tableName, SecurityIdentity securityIdentity, IPrincipal user)
+        {
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            _database.ThrowIfTableNotFound(tableName);
+            ParamChecker.ThrowIfNull(securityIdentity, nameof(securityIdentity));
+            securityIdentity.Name.ThrowIfNullOrWhiteSpaced(nameof(securityIdentity.Name));
+
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Owner))
+                throw new ArribaAccessForbiddenException("Operation not authorized");
         }
 
         public void ReloadTableForUser(string tableName, IPrincipal user)
         {
-            throw new NotImplementedException();
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            _database.ThrowIfTableNotFound(tableName);
+
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Operation not authorized");
+
+            _database.ReloadTable(tableName);
         }
 
         public void RevokeAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
         {
-            throw new NotImplementedException();
+            CheckAuthorizationPreCondition(tableName, securityIdentity, user);
+
+            SecurityPermissions security = _database.Security(tableName);
+            security.Revoke(securityIdentity.Scope, securityIdentity.Name, scope);
+
+            _database.SaveSecurity(tableName);
         }
 
         public (bool, ExecutionDetails) SaveTableForUser(string tableName, IPrincipal user, VerificationLevel verificationLevel)
         {
-            throw new NotImplementedException();
+            bool tableSaved = false;
+
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            _database.ThrowIfTableNotFound(tableName);
+
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
+            Table table = _database[tableName];
+
+            ExecutionDetails executionDetails = new ExecutionDetails();
+            table.VerifyConsistency(verificationLevel, executionDetails);
+
+            if (executionDetails.Succeeded)
+            {
+                table.Save();
+                tableSaved = true;
+            }
+
+            return (tableSaved, executionDetails);
         }
 
         public bool UnloadAllTableForUser(IPrincipal user)
         {
-            throw new NotImplementedException();
+            if (!_arribaAuthorization.ValidateCreateAccessForUser(user))
+                return false;
+
+            _database.UnloadAll();
+
+            return true;
         }
 
         public bool UnloadTableForUser(string tableName, IPrincipal user)
         {
-            throw new NotImplementedException();
+            _database.ThrowIfTableNotFound(tableName);
+
+            if (!_arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Writer))
+                return false;
+
+            _database.UnloadTable(tableName);
+
+            return true;
         }
     }
 }
