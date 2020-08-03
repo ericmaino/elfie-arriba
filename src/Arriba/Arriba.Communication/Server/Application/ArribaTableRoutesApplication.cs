@@ -23,15 +23,15 @@ using Arriba.Types;
 namespace Arriba.Server.Application
 {
     [Export(typeof(IRoutedApplication))]
-    internal class ArribaTableRoutesApplication : ArribaApplication, IArribaManagementService
+    internal class ArribaTableRoutesApplication : ArribaApplication
     {
         private readonly IArribaManagementService _service;
 
         [ImportingConstructor]
-        public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth)
+        public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth, IArribaManagementService managementService)
             : base(f, auth)
         {
-            _service = this;
+            _service = managementService;
 
             // GET - return tables in Database
             this.Get("", this.GetTables);
@@ -83,20 +83,6 @@ namespace Arriba.Server.Application
                      this.SetTablePermissions);
         }
 
-
-        SecureDatabase IArribaManagementService.GetDatabaseForOwner(IPrincipal user)
-        {
-            if (!ValidateDatabaseAccessForUser(user, PermissionScope.Owner))
-                throw new ArribaAccessForbiddenException("User has no be an owner to retrieve the database");
-
-            return Database;
-        }
-
-        IEnumerable<string> IArribaManagementService.GetTables()
-        {
-            return this.Database.TableNames;
-        }
-
         private IResponse GetTables(IRequestContext ctx, Route route)
         {
             return ArribaResponse.Ok(_service.GetTables());
@@ -111,20 +97,6 @@ namespace Arriba.Server.Application
             return ArribaResponse.Ok(allBasics);
         }
 
-        IDictionary<string, TableInformation> IArribaManagementService.GetTablesForUser(IPrincipal user)
-        {
-            IDictionary<string, TableInformation> allBasics = new Dictionary<string, TableInformation>();
-            foreach (string tableName in this.Database.TableNames)
-            {
-                if (HasTableAccess(tableName, user, PermissionScope.Reader))
-                {
-                    allBasics[tableName] = _service.GetTableInformationForUser(tableName, user);
-                }
-            }
-
-            return allBasics;
-        }
-
         private IResponse GetTableInformation(IRequestContext ctx, Route route)
         {
             var tableName = GetAndValidateTableName(route);
@@ -134,44 +106,6 @@ namespace Arriba.Server.Application
                 return ArribaResponse.NotFound();
 
             return ArribaResponse.Ok(tableInformation);
-        }
-
-        TableInformation IArribaManagementService.GetTableInformationForUser(string tableName, IPrincipal user)
-        {
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!HasTableAccess(tableName, user, PermissionScope.Reader))
-                return null;
-
-            var table = this.Database[tableName];
-
-            if (table == null)
-                return null;
-
-            TableInformation ti = new TableInformation();
-            ti.Name = tableName;
-            ti.PartitionCount = table.PartitionCount;
-            ti.RowCount = table.Count;
-            ti.LastWriteTimeUtc = table.LastWriteTimeUtc;
-            ti.CanWrite = HasTableAccess(tableName, user, PermissionScope.Writer);
-            ti.CanAdminister = HasTableAccess(tableName, user, PermissionScope.Owner);
-
-            IList<string> restrictedColumns = this.Database.GetRestrictedColumns(tableName, (si) => this.IsInIdentity(user, si));
-            if (restrictedColumns == null)
-            {
-                ti.Columns = table.ColumnDetails;
-            }
-            else
-            {
-                List<ColumnDetails> allowedColumns = new List<ColumnDetails>();
-                foreach (ColumnDetails column in table.ColumnDetails)
-                {
-                    if (!restrictedColumns.Contains(column.Name)) allowedColumns.Add(column);
-                }
-                ti.Columns = allowedColumns;
-            }
-
-            return ti;
         }
 
         private IResponse UnloadTable(IRequestContext ctx, Route route)
@@ -184,43 +118,12 @@ namespace Arriba.Server.Application
                 return ArribaResponse.Forbidden($"Not able to unload table {tableName}");
         }
 
-        bool IArribaManagementService.UnloadTableForUser(string tableName, IPrincipal user)
-        {
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!this.HasTableAccess(tableName, user, PermissionScope.Writer))
-                return false;
-
-            this.Database.UnloadTable(tableName);
-            return true;
-        }
-
         private IResponse UnloadAll(IRequestContext ctx, Route route)
         {
             if (!_service.UnloadAllTableForUser(ctx.Request.User))
                 return ArribaResponse.Forbidden("Not able to unload all tables");
 
             return ArribaResponse.Ok("All Tables unloaded");
-        }
-
-        bool IArribaManagementService.UnloadAllTableForUser(IPrincipal user)
-        {
-            if (!this.ValidateCreateAccessForUser(user))
-                return false;
-
-            this.Database.UnloadAll();
-            return true;
-        }
-
-        void IArribaManagementService.DeleteTableForUser(string tableName, IPrincipal user)
-        {
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
-                throw new ArribaAccessForbiddenException("Operation not authorized");
-
-            this.Database.DropTable(tableName);
         }
 
         private IResponse Drop(IRequestContext ctx, Route route)
@@ -252,21 +155,6 @@ namespace Arriba.Server.Application
 
             var security = this.Database.Security(tableName);
             return ArribaResponse.Ok(security);
-        }
-
-        DeleteResult IArribaManagementService.DeleteTableRowsForUser(string tableName, string query, IPrincipal user)
-        {
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            query.ThrowIfNullOrWhiteSpaced(nameof(query));
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
-                throw new ArribaAccessForbiddenException("User not authorized");
-
-            var table = this.Database[tableName];
-            var expression = SelectQuery.ParseWhere(query);
-            var correctExpression = this.CurrentCorrectors(user).Correct(expression);
-            return table.Delete(correctExpression);
         }
 
 
@@ -325,65 +213,6 @@ namespace Arriba.Server.Application
             return ArribaResponse.Created(createTable.TableName);
         }
 
-        TableInformation IArribaManagementService.CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
-        {
-            ParamChecker.ThrowIfNull(createTable, nameof(createTable));
-            createTable.TableName.ThrowIfNullOrWhiteSpaced(nameof(createTable));
-
-            if (!ValidateCreateAccessForUser(user))
-                throw new ArribaAccessForbiddenException($"Create Table access denied.");
-
-            Database.ThrowIfTableAlreadyExists(createTable.TableName);
-
-            var table = this.Database.AddTable(createTable.TableName, createTable.ItemCountLimit);
-
-            // Add columns from request
-            table.AddColumns(createTable.Columns);
-
-            // Include permissions from request
-            if (createTable.Permissions != null)
-            {
-                // Ensure the creating user is always an owner
-                createTable.Permissions.Grant(IdentityScope.User, user.Identity.Name, PermissionScope.Owner);
-
-                this.Database.SetSecurity(createTable.TableName, createTable.Permissions);
-            }
-
-            // Save, so that table existence, column definitions, and permissions are saved
-            table.Save();
-            this.Database.SaveSecurity(createTable.TableName);
-
-            return _service.GetTableInformationForUser(createTable.TableName, user);
-        }
-
-        /// <summary>
-        /// Add requested column(s) to the specified table.
-        /// </summary>
-        /// <param name="tableName">Table name</param>
-        /// <param name="columnDetails">ColumnDetails List</param>
-        /// <param name="user">User requesting the operation</param>
-        /// <exception cref="ArgumentException"></exception>
-        /// <exception cref="TableNotFoundException"></exception>
-        /// <exception cref="ArribaAccessForbiddenException"></exception>
-        void IArribaManagementService.AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user)
-        {
-
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(columnDetails, nameof(columnDetails));
-
-            if (columnDetails.Count == 0)
-                throw new ArgumentException("Not Provided", nameof(columnDetails));
-
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
-                throw new ArribaAccessForbiddenException("User not authorized");
-
-            Table table = this.Database[tableName];
-            table.AddColumns(columnDetails);
-
-        }
-
         /// <summary>
         /// Add requested column(s) to the specified table.
         /// </summary>
@@ -408,18 +237,6 @@ namespace Arriba.Server.Application
             }
         }
 
-        void IArribaManagementService.ReloadTableForUser(string tableName, IPrincipal user)
-        {
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
-                throw new ArribaAccessForbiddenException("Operation not authorized");
-
-            this.Database.ReloadTable(tableName);
-
-        }
-
         /// <summary>
         /// Reload the specified table.
         /// </summary>
@@ -442,31 +259,6 @@ namespace Arriba.Server.Application
                 return ArribaResponse.Ok("Reloaded");
             }
         }
-
-        (bool, ExecutionDetails) IArribaManagementService.SaveTableForUser(string tableName, IPrincipal user, VerificationLevel verificationLevel)
-        {
-            bool tableSaved = false;
-
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
-                throw new ArribaAccessForbiddenException("Not authorized");
-
-            Table table = this.Database[tableName];
-
-            ExecutionDetails executionDetails = new ExecutionDetails();
-            table.VerifyConsistency(verificationLevel, executionDetails);
-
-            if (executionDetails.Succeeded)
-            {
-                table.Save();
-                tableSaved = true;
-            }
-
-            return (tableSaved, executionDetails);
-        }
-
 
         /// <summary>
         /// Saves the specified table.
@@ -508,34 +300,13 @@ namespace Arriba.Server.Application
             return ArribaResponse.BadRequest(ex.Message);
         }
 
-        private void CheckAuthorizationPreCondition(string tableName, SecurityIdentity securityIdentity, IPrincipal user)
-        {
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            Database.ThrowIfTableNotFound(tableName);
-            ParamChecker.ThrowIfNull(securityIdentity, nameof(securityIdentity));
-            securityIdentity.Name.ThrowIfNullOrWhiteSpaced(nameof(securityIdentity.Name));
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Owner))
-                throw new ArribaAccessForbiddenException("Operation not authorized");
-        }
-
-        void IArribaManagementService.RevokeAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
-        {
-            CheckAuthorizationPreCondition(tableName, securityIdentity, user);
-
-            SecurityPermissions security = this.Database.Security(tableName);
-            security.Revoke(securityIdentity.Scope, securityIdentity.Name, scope);
-
-            this.Database.SaveSecurity(tableName);
-        }
-
         private enum AuthorizationOperation
         {
             Grant = 1,
             Revoke = 2
         }
 
-        private async Task<IResponse> ExecuteAuthorizaitonPermission(AuthorizationOperation operation, IRequestContext request, Route route)
+        private async Task<IResponse> ExecuteAuthorizationPermission(AuthorizationOperation operation, IRequestContext request, Route route)
         {
             var user = request.Request.User;
             string tableName = GetAndValidateTableName(route);
@@ -566,7 +337,7 @@ namespace Arriba.Server.Application
                 this.Database.SaveSecurity(tableName);
             }
 
-            return ArribaResponse.Ok($"{operation} successed");
+            return ArribaResponse.Ok($"{operation} succeeded");
         }
 
         /// <summary>
@@ -574,18 +345,7 @@ namespace Arriba.Server.Application
         /// </summary>
         private async Task<IResponse> Revoke(IRequestContext request, Route route)
         {
-            return await ExecuteAuthorizaitonPermission(AuthorizationOperation.Revoke, request, route);
-        }
-
-        void IArribaManagementService.GrantAccessForUser(string tableName, SecurityIdentity securityIdentity, PermissionScope scope, IPrincipal user)
-        {
-            CheckAuthorizationPreCondition(tableName, securityIdentity, user);
-
-            SecurityPermissions security = this.Database.Security(tableName);
-            security.Grant(securityIdentity.Scope, securityIdentity.Name, scope);
-
-            // Save permissions
-            this.Database.SaveSecurity(tableName);
+            return await ExecuteAuthorizationPermission(AuthorizationOperation.Revoke, request, route);
         }
 
         /// <summary>
@@ -593,7 +353,7 @@ namespace Arriba.Server.Application
         /// </summary>
         private async Task<IResponse> Grant(IRequestContext request, Route route)
         {
-            return await ExecuteAuthorizaitonPermission(AuthorizationOperation.Revoke, request, route);
+            return await ExecuteAuthorizationPermission(AuthorizationOperation.Revoke, request, route);
         }
 
         private static string SanitizeIdentity(string rawIdentity)

@@ -1,27 +1,30 @@
-﻿using Arriba.ParametersCheckers;
-using Arriba.Server.Application;
-using Arriba.Server.Authentication;
-using Arriba.Server.Hosting;
-using System;
+﻿using Arriba.Model;
+using Arriba.Model.Correctors;
+using Arriba.ParametersCheckers;
 
 namespace Arriba.Communication.Server.Application
 {
     public class ArribaManagementServiceFactory
     {
-        private readonly DatabaseFactory databaseFactory;
-        private readonly ClaimsAuthenticationService claimsAuthenticationService; 
-        
-        public ArribaManagementServiceFactory(DatabaseFactory databaseFactory)
+        private const string Table_People = "People";
+
+        private readonly SecureDatabase secureDatabase;
+
+        public ArribaManagementServiceFactory(SecureDatabase secureDatabase)
         {
-            ParamChecker.ThrowIfNull(databaseFactory, nameof(databaseFactory));
-            
-            this.databaseFactory = databaseFactory;
-            claimsAuthenticationService = new ClaimsAuthenticationService();
+            ParamChecker.ThrowIfNull(secureDatabase, nameof(secureDatabase));
+
+            this.secureDatabase = secureDatabase;
         }
 
-        public IArribaManagementService CreateArribaManagementService()
-        {            
-            return new ArribaTableRoutesApplication(databaseFactory, claimsAuthenticationService);
+        public IArribaManagementService CreateArribaManagementService(string userAliasCorrectorTable = "")
+        {
+            if (string.IsNullOrWhiteSpace(userAliasCorrectorTable))
+                userAliasCorrectorTable = Table_People;
+
+            var correctors = new ComposedCorrector(new TodayCorrector(), new UserAliasCorrector(secureDatabase[userAliasCorrectorTable]));
+
+            return new ArribaManagementService(secureDatabase, correctors);
         }
     }
 }
