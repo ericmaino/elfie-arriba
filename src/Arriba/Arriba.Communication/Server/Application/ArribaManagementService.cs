@@ -36,9 +36,30 @@ namespace Arriba.Communication.Server.Application
             return new ComposedCorrector(new MeCorrector(user.Identity.Name), _correctors);
         }
 
+        /// <summary>
+        /// Add requested column(s) to the specified table.
+        /// </summary>
+        /// <param name="tableName">Table name</param>
+        /// <param name="columnDetails">ColumnDetails List</param>
+        /// <param name="user">User requesting the operation</param>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="TableNotFoundException"></exception>
+        /// <exception cref="ArribaAccessForbiddenException"></exception>
         public void AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user)
         {
-            throw new NotImplementedException();
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            ParamChecker.ThrowIfNull(columnDetails, nameof(columnDetails));
+
+            if (columnDetails.Count == 0)
+                throw new ArgumentException("Not Provided", nameof(columnDetails));
+
+            _database.ThrowIfTableNotFound(tableName);
+
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
+                throw new ArribaAccessForbiddenException("User not authorized");
+
+            Table table = _database[tableName];
+            table.AddColumns(columnDetails);
         }
 
         public TableInformation CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
