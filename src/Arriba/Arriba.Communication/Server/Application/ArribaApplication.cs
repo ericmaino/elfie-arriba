@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 using Arriba.Communication;
 using Arriba.Communication.Application;
+using Arriba.Communication.Server.Authorization;
 using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.Model.Security;
@@ -24,6 +25,7 @@ namespace Arriba.Server
         protected static readonly ArribaResponse ContinueToNextHandlerResponse = null;
         private ClaimsAuthenticationService _claimsAuth;
         private ComposedCorrector _correctors;
+        private IArribaAuthorization _arribaAuthorization;
 
         [ImportingConstructor]
         protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth)
@@ -34,6 +36,8 @@ namespace Arriba.Server
             this.EventSource = EventPublisher.CreateEventSource(this.GetType().Name);
             this.Database = factory.GetDatabase();
             _claimsAuth = claimsAuth;
+
+            _arribaAuthorization = new ArribaAuthorization(this.Database);
 
             // Cache correctors which aren't request specific
             // Cache the People table so that it isn't reloaded for every request.
@@ -103,48 +107,24 @@ namespace Arriba.Server
         {
             var user = ctx.Request.User;
 
-            if (!ValidateCreateAccessForUser(user))
+            if (!_arribaAuthorization.ValidateCreateAccessForUser(user))
             {
                 return ArribaResponse.Forbidden(String.Format("Create Table access denied for {0}.", user.Identity.Name));
             }
-            
+
             return ContinueToNextHandlerResponse;
-            
-        }
-
-        protected bool ValidateCreateAccessForUser(IPrincipal user)
-        {
-            bool hasPermission = false;
-            var security = this.Database.DatabasePermissions();
-            if (!security.HasTableAccessSecurity)
-            {
-                // TODO: CoreBug
-                hasPermission = false;
-                //// If there's no security, table create is only allowed if the service is running as the same user
-                //hasPermission = ctx.Request.User.Identity.Name.Equals(WindowsIdentity.GetCurrent().Name);
-            }
-            else
-            {
-                // Otherwise, check for writer or better permissions at the DB level
-                hasPermission = HasPermission(security, user, PermissionScope.Writer);
-            }
-
-            return hasPermission;
 
         }
 
         protected bool ValidateDatabaseAccessForUser(IPrincipal user, PermissionScope scope)
         {
-            return HasTableAccess(string.Empty, user, scope);
+            return _arribaAuthorization.ValidateDatabaseAccessForUser(user, scope);
         }
 
         protected bool ValidateTableAccessForUser(string tableName, IPrincipal user, PermissionScope scope)
         {
-            ParamChecker.ThrowIfTableNotFound(this.Database, tableName);
-            
-            return HasTableAccess(tableName, user, scope);
+            return _arribaAuthorization.ValidateTableAccessForUser(tableName, user, scope);
         }
-
 
         protected IResponse ValidateReadAccess(IRequestContext ctx, Route routeData)
         {
@@ -201,54 +181,13 @@ namespace Arriba.Server
 
         protected bool HasTableAccess(string tableName, IPrincipal currentUser, PermissionScope scope)
         {
-            var security = this.Database.Security(tableName);
-
-            // No security? Allowed.
-            if (!security.HasTableAccessSecurity)
-            {
-                return true;
-            }
-
-            // Otherwise check permissions
-            return HasPermission(security, currentUser, scope);
+            return _arribaAuthorization.HasTableAccess(tableName, currentUser, scope);
         }
 
-        protected bool HasPermission(SecurityPermissions security, IPrincipal currentUser, PermissionScope scope)
-        {
-            // No user identity? Forbidden! 
-            if (currentUser == null || currentUser.Identity == null || !currentUser.Identity.IsAuthenticated)
-            {
-                return false;
-            }
-
-            // Try user first, cheap check. 
-            if (security.IsIdentityInPermissionScope(IdentityScope.User, currentUser.Identity.Name, scope))
-            {
-                return true;
-            }
-
-            // See if the user is in any allowed groups.
-            foreach (var group in security.GetScopeIdentities(scope, IdentityScope.Group))
-            {
-                if (_claimsAuth.IsUserInGroup(currentUser, group.Name))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
 
         protected bool IsInIdentity(IPrincipal currentUser, SecurityIdentity targetUserOrGroup)
         {
-            if (targetUserOrGroup.Scope == IdentityScope.User)
-            {
-                return targetUserOrGroup.Name.Equals(currentUser.Identity.Name, StringComparison.OrdinalIgnoreCase);
-            }
-            else
-            {
-                return _claimsAuth.IsUserInGroup(currentUser, targetUserOrGroup.Name);
-            }
+            return _arribaAuthorization.IsInIdentity(currentUser, targetUserOrGroup);
         }
 
         /// <summary>
@@ -278,7 +217,7 @@ namespace Arriba.Server
             string tableName = route["tableName"];
 
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            
+
             return tableName;
         }
 
