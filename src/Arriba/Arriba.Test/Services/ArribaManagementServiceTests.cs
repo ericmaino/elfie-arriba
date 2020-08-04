@@ -40,7 +40,7 @@ namespace Arriba.Test.Services
             _databaseFactory = new DatabaseFactory();
             var factory = new ArribaManagementServiceFactory(_databaseFactory);
 
-            _service = factory.CreateArribaManagementService();
+            _service = factory.CreateArribaManagementService("Users");
             _db = _service.GetDatabaseForOwner(_owner);
         }
 
