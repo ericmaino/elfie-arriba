@@ -38,7 +38,7 @@ namespace Arriba.Test.Services
             _owner = GetAuthenticatedUser("user3", PermissionScope.Owner);
 
             _databaseFactory = new DatabaseFactory();
-            var factory = new ArribaManagementServiceFactory(_databaseFactory);
+            var factory = new ArribaManagementServiceFactory(_databaseFactory.GetDatabase());
 
             _service = factory.CreateArribaManagementService("Users");
             _db = _service.GetDatabaseForOwner(_owner);
