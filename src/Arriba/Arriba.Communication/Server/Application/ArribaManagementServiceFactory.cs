@@ -1,4 +1,5 @@
-﻿using Arriba.Model;
+﻿using Arriba.Communication.Model;
+using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.ParametersCheckers;
 
@@ -22,7 +23,7 @@ namespace Arriba.Communication.Server.Application
             if (string.IsNullOrWhiteSpace(userAliasCorrectorTable))
                 userAliasCorrectorTable = Table_People;
 
-            var correctors = new ComposedCorrector(new TodayCorrector(), new UserAliasCorrector(secureDatabase[userAliasCorrectorTable]));
+            var correctors = new CompositionComposedCorrectors(new TodayCorrector(), new UserAliasCorrector(secureDatabase[userAliasCorrectorTable]));
 
             return new ArribaManagementService(secureDatabase, correctors);
         }

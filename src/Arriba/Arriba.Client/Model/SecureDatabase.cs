@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Composition;
 using System.IO;
 
 using Arriba.Model.Column;
@@ -18,6 +19,7 @@ namespace Arriba.Model
     ///  SecureDatabase adds [optional] SecurityPermissions next to Tables for
     ///  remote Arriba scenarios.
     /// </summary>
+    [Export(typeof(SecureDatabase)),Shared]
     public class SecureDatabase : Database
     {
         private Dictionary<string, SecurityPermissions> _securityByTable;
