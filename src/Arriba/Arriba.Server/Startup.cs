@@ -68,7 +68,11 @@ namespace Arriba.Server
             app.UseCors();
 
             if (serverConfig.EnabledAuthentication)
+            {
+                app.UseAuthentication();
                 app.UseAuthorization();
+                app.UseGetPrincipalFromToken();
+            }
 
             app.UseEndpoints(endpoints =>
             {
