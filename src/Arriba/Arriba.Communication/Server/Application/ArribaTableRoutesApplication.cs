@@ -21,10 +21,10 @@ using Arriba.Types;
 namespace Arriba.Server.Application
 {
     [Export(typeof(IRoutedApplication))]
-    internal class ArribaManagement : ArribaApplication
+    internal class ArribaTableRoutesApplication : ArribaApplication
     {
         [ImportingConstructor]
-        public ArribaManagement(DatabaseFactory f, ClaimsAuthenticationService auth)
+        public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth)
             : base(f, auth)
         {
             // GET - return tables in Database
