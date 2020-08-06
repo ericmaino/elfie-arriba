@@ -4,10 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Composition;
+using System.Security.Principal;
 using System.Threading.Tasks;
 
 using Arriba.Communication;
 using Arriba.Communication.Application;
+using Arriba.Communication.Server.Application;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Expressions;
@@ -21,12 +23,16 @@ using Arriba.Types;
 namespace Arriba.Server.Application
 {
     [Export(typeof(IRoutedApplication))]
-    internal class ArribaTableRoutesApplication : ArribaApplication
+    internal class ArribaTableRoutesApplication : ArribaApplication, IArribaManagementService
     {
+        private readonly IArribaManagementService _service;
+
         [ImportingConstructor]
         public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth)
             : base(f, auth)
         {
+            _service = this;
+
             // GET - return tables in Database
             this.Get("", this.GetTables);
 
@@ -77,64 +83,70 @@ namespace Arriba.Server.Application
                      this.SetTablePermissions);
         }
 
+
+        IEnumerable<string> IArribaManagementService.GetTables()
+        {
+            return this.Database.TableNames;
+        }
+
         private IResponse GetTables(IRequestContext ctx, Route route)
         {
-            return ArribaResponse.Ok(this.Database.TableNames);
+            return ArribaResponse.Ok(_service.GetTables());
         }
 
         private IResponse GetAllBasics(IRequestContext ctx, Route route)
         {
-            bool hasTables = false;
+            IPrincipal user = ctx.Request.User;
 
-            Dictionary<string, TableInformation> allBasics = new Dictionary<string, TableInformation>();
+            IDictionary<string, TableInformation> allBasics = _service.GetTablesForUser(user);
+
+            return ArribaResponse.Ok(allBasics);
+        }
+
+        IDictionary<string, TableInformation> IArribaManagementService.GetTablesForUser(IPrincipal user)
+        {
+            IDictionary<string, TableInformation> allBasics = new Dictionary<string, TableInformation>();
             foreach (string tableName in this.Database.TableNames)
             {
-                hasTables = true;
-
-                if (HasTableAccess(tableName, ctx.Request.User, PermissionScope.Reader))
+                if (HasTableAccess(tableName, user, PermissionScope.Reader))
                 {
-                    allBasics[tableName] = GetTableBasics(tableName, ctx);
+                    allBasics[tableName] = _service.GetTableInformationForUser(tableName, user);
                 }
             }
 
-            // If you didn't have access to any tables, return a distinct result to show Access Denied in the browser
-            // but not a 401, because that is eaten by CORS.
-            if (allBasics.Count == 0 && hasTables)
-            {
-                return ArribaResponse.Ok(null);
-            }
-
-            return ArribaResponse.Ok(allBasics);
+            return allBasics;
         }
 
         private IResponse GetTableInformation(IRequestContext ctx, Route route)
         {
             var tableName = GetAndValidateTableName(route);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound();
-            }
+            var tableInformation = _service.GetTableInformationForUser(tableName, ctx.Request.User);
 
-            TableInformation ti = GetTableBasics(tableName, ctx);
-            return ArribaResponse.Ok(ti);
+            if (tableInformation == null)
+                return ArribaResponse.NotFound();
+
+            return ArribaResponse.Ok(tableInformation);
         }
 
-        private TableInformation GetTableBasics(string tableName, IRequestContext ctx)
+        TableInformation IArribaManagementService.GetTableInformationForUser(string tableName, IPrincipal user)
         {
             if (!HasTableAccess(tableName, user, PermissionScope.Reader))
                 return null;
 
             var table = this.Database[tableName];
 
+            if (table == null)
+                return null;
+
             TableInformation ti = new TableInformation();
             ti.Name = tableName;
             ti.PartitionCount = table.PartitionCount;
             ti.RowCount = table.Count;
             ti.LastWriteTimeUtc = table.LastWriteTimeUtc;
-            ti.CanWrite = HasTableAccess(tableName, ctx.Request.User, PermissionScope.Writer);
-            ti.CanAdminister = HasTableAccess(tableName, ctx.Request.User, PermissionScope.Owner);
+            ti.CanWrite = HasTableAccess(tableName, user, PermissionScope.Writer);
+            ti.CanAdminister = HasTableAccess(tableName, user, PermissionScope.Owner);
 
-            IList<string> restrictedColumns = this.Database.GetRestrictedColumns(tableName, (si) => this.IsInIdentity(ctx.Request.User, si));
+            IList<string> restrictedColumns = this.Database.GetRestrictedColumns(tableName, (si) => this.IsInIdentity(user, si));
             if (restrictedColumns == null)
             {
                 ti.Columns = table.ColumnDetails;
@@ -155,14 +167,37 @@ namespace Arriba.Server.Application
         private IResponse UnloadTable(IRequestContext ctx, Route route)
         {
             var tableName = GetAndValidateTableName(route);
+
+            if (_service.UnloadTableForUser(tableName, ctx.Request.User))
+                return ArribaResponse.Ok($"Table {tableName} unloaded");
+            else
+                return ArribaResponse.Forbidden($"Not able to unload table {tableName}");
+        }
+
+        bool IArribaManagementService.UnloadTableForUser(string tableName, IPrincipal user)
+        {
+            if (!this.HasTableAccess(tableName, user, PermissionScope.Writer))
+                return false;
+
             this.Database.UnloadTable(tableName);
-            return ArribaResponse.Ok($"Table unloaded");
+            return true;
         }
 
         private IResponse UnloadAll(IRequestContext ctx, Route route)
         {
-            this.Database.UnloadAll();
+            if (!_service.UnloadAllTableForUser(ctx.Request.User))
+                return ArribaResponse.Forbidden("Not able to unload all tables");
+
             return ArribaResponse.Ok("All Tables unloaded");
+        }
+
+        bool IArribaManagementService.UnloadAllTableForUser(IPrincipal user)
+        {
+            if (!this.ValidateCreateAccessForUser(user))
+                return false;
+
+            this.Database.UnloadAll();
+            return true;
         }
 
         private IResponse Drop(IRequestContext ctx, Route route)
