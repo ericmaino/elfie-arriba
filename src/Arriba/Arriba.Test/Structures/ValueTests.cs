@@ -17,7 +17,6 @@ namespace Arriba.Test.Structures
     public class ValueTests
     {
         [TestMethod]
-        [Ignore("Needs fix while converting to dotnetcore")]
         public void Value_Basic()
         {
             // Null

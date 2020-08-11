@@ -357,8 +357,7 @@ namespace Arriba.Test.Model.Query
             return output.ToString();
         }
 
-        [TestMethod]
-        [Ignore("Needs fix while converting to dotnetcore")]
+        [TestMethod]        
         public void DistributionQuery_Rounding()
         {
             Assert.AreEqual(12, DistributionQuery.Bucketer<bool>.Round(12));

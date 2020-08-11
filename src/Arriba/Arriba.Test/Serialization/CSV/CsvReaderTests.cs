@@ -138,7 +138,6 @@ namespace Arriba.Test.Csv
         }
 
         [TestMethod]
-        [Ignore("Needs fix while converting to dotnetcore")]
         public void ParseQuotedNewLine()
         {
             // This is realy """A""","B","C"
