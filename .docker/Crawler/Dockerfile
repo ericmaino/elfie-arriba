@@ -10,6 +10,5 @@ ADD ./run-crawler.sh /Arriba/Tools/app
 WORKDIR /Arriba/Tools/app
 RUN chmod +x ./run-crawler.sh
 
-RUN ls -l
-RUN find /Arriba
-CMD ["./run-crawler.sh", "configName=default", "mode=-i"] 
+ENTRYPOINT [ "./run-crawler.sh" ]
+CMD ["configName=default", "mode=-i"]
