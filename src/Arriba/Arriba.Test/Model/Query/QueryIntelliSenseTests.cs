@@ -374,11 +374,11 @@ namespace Arriba.Test.Model.Query
             Assert.AreEqual(123.0, DistributionQuery.Bucketer<bool>.Round(123.4));
             Assert.AreEqual(1230, DistributionQuery.Bucketer<bool>.Round(1234.5));
 
-            Assert.AreEqual("5/22/2017 12:00:00 AM", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromDays(1)).ToString());
-            Assert.AreEqual("5/22/2017 4:00:00 PM", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromHours(1)).ToString());
-            Assert.AreEqual("5/22/2017 3:34:00 PM", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromMinutes(1)).ToString());
-            Assert.AreEqual("5/22/2017 3:33:35 PM", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromSeconds(1)).ToString());
-
+            string dateFormat = "MM/dd/yyyy HH:mm:ss";
+            Assert.AreEqual("05/22/2017 00:00:00", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromDays(1)).ToString(dateFormat));
+            Assert.AreEqual("05/22/2017 16:00:00", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromHours(1)).ToString(dateFormat));
+            Assert.AreEqual("05/22/2017 15:34:00", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromMinutes(1)).ToString(dateFormat));
+            Assert.AreEqual("05/22/2017 15:33:35", DistributionQuery.Bucketer<bool>.Round(DateTime.Parse("2017-05-22 3:33:35 PM"), TimeSpan.FromSeconds(1)).ToString(dateFormat));
             Assert.AreEqual("123.00:00:00", DistributionQuery.Bucketer<bool>.Round(TimeSpan.Parse("123.10:41:51.6789"), TimeSpan.FromDays(1)).ToString());
             Assert.AreEqual("123.11:00:00", DistributionQuery.Bucketer<bool>.Round(TimeSpan.Parse("123.10:41:51.6789"), TimeSpan.FromHours(1)).ToString());
             Assert.AreEqual("123.10:42:00", DistributionQuery.Bucketer<bool>.Round(TimeSpan.Parse("123.10:41:51.6789"), TimeSpan.FromMinutes(1)).ToString());
