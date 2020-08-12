@@ -1,4 +1,4 @@
-FROM arriba-base as build
+FROM ericmaino/elfie-arriba:latest as build
 
 FROM node:10.21.0 as node-build
 
