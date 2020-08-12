@@ -1,4 +1,4 @@
-FROM arriba-base as build
+FROM ericmaino/elfie-arriba:latest as build
 
 WORKDIR /src/Arriba/Arriba.Server 
 RUN dotnet publish --no-restore -o /app

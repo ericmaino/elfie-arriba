@@ -4,11 +4,12 @@ volumes:
 
 services:
   base:
-    image: arriba-base
+    image: ericmaino/elfie-arriba:latest
     build: 
       context: ./src
       dockerfile: Dockerfile
   crawler:
+    image: ericmaino/elfie-arriba:crawler-latest
     build: 
       context: .docker/Crawler
       dockerfile: Dockerfile
@@ -19,6 +20,7 @@ services:
     environment:
       ARRIBA__AZPAT: ${AZPAT}
   server:
+    image: ericmaino/elfie-arriba:server-latest
     build: 
       context: .docker/Server
       dockerfile: Dockerfile
@@ -29,6 +31,7 @@ services:
     environment:
       ARRIBASERVER__OAUTHCONFIG__APPSECRET: ${APPSECRET}
   web:
+    image: ericmaino/elfie-arriba:web-latest
     build: 
       context: .docker/WebUI
       dockerfile: Dockerfile

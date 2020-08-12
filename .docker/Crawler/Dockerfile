@@ -1,4 +1,4 @@
-FROM arriba-base as build
+FROM ericmaino/elfie-arriba:latest as build
 
 # # #  --- Dotnet Core Runtime Image --- # # #
 FROM mcr.microsoft.com/dotnet/core/runtime
