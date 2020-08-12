@@ -141,7 +141,7 @@ namespace Arriba.Test.Csv
         public void ParseQuotedNewLine()
         {
             // This is realy """A""","B","C"
-            string content = "\"A\r\nA\",\"B\",\"C\"";
+            string content = $"\"A{Environment.NewLine}A\",\"B\",\"C\"";
 
             var settings = new CsvReaderSettings()
             {
@@ -155,7 +155,7 @@ namespace Arriba.Test.Csv
                 var rows = reader.Rows.ToArray();
 
 
-                Assert.AreEqual("A\r\nA", rows[0][0].ToString());
+                Assert.AreEqual($"A{Environment.NewLine}A", rows[0][0].ToString());
                 Assert.AreEqual("B", rows[0][1].ToString());
                 Assert.AreEqual("C", rows[0][2].ToString());
             }
@@ -227,9 +227,9 @@ namespace Arriba.Test.Csv
 
             using (StreamWriter writer = new StreamWriter(ms, Encoding.UTF8, 1024, true))
             {
-                foreach (var line in content.Split('\n'))
+                foreach (var line in content.Split(Environment.NewLine))
                 {
-                    var finalLine = line.Trim().TrimEnd('\r');
+                    var finalLine = line.Trim();
 
                     if (String.IsNullOrWhiteSpace(finalLine))
                     {
