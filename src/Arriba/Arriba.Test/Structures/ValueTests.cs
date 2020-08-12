@@ -56,16 +56,16 @@ namespace Arriba.Test.Structures
             // Number Limits - ensure upconvert but don't downconvert; no unsigned representation for negative values
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}", double.MaxValue), TryAllConversions(double.MaxValue));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}", double.MaxValue), TryAllConversions_ValueTypeReference(double.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:3.40282346638529E+38, float:{0}", float.MaxValue), TryAllConversions(float.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:3.40282346638529E+38, float:{0}", float.MaxValue), TryAllConversions_ValueTypeReference(float.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:1.84467440737096E+19, float:1.844674E+19, ulong:{0}", ulong.MaxValue), TryAllConversions(ulong.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:1.84467440737096E+19, float:1.844674E+19, ulong:{0}", ulong.MaxValue), TryAllConversions_ValueTypeReference(ulong.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:9.22337203685478E+18, float:9.223372E+18, ulong:{0}, long:{0}", long.MaxValue), TryAllConversions(long.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:9.22337203685478E+18, float:9.223372E+18, ulong:{0}, long:{0}", long.MaxValue), TryAllConversions_ValueTypeReference(long.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:4.294967E+09, ulong:{0}, long:{0}, uint:{0}", uint.MaxValue), TryAllConversions(uint.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:4.294967E+09, ulong:{0}, long:{0}, uint:{0}", uint.MaxValue), TryAllConversions_ValueTypeReference(uint.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:2.147484E+09, ulong:{0}, long:{0}, uint:{0}, int:{0}", int.MaxValue), TryAllConversions(int.MaxValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:2.147484E+09, ulong:{0}, long:{0}, uint:{0}, int:{0}", int.MaxValue), TryAllConversions_ValueTypeReference(int.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:3.4028234663852886E+38, float:{0}", float.MaxValue), TryAllConversions(float.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:3.4028234663852886E+38, float:{0}", float.MaxValue), TryAllConversions_ValueTypeReference(float.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:1.8446744073709552E+19, float:1.8446744E+19, ulong:{0}", ulong.MaxValue), TryAllConversions(ulong.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:1.8446744073709552E+19, float:1.8446744E+19, ulong:{0}", ulong.MaxValue), TryAllConversions_ValueTypeReference(ulong.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:9.223372036854776E+18, float:9.223372E+18, ulong:{0}, long:{0}", long.MaxValue), TryAllConversions(long.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:9.223372036854776E+18, float:9.223372E+18, ulong:{0}, long:{0}", long.MaxValue), TryAllConversions_ValueTypeReference(long.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:4.2949673E+09, ulong:{0}, long:{0}, uint:{0}", uint.MaxValue), TryAllConversions(uint.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:4.2949673E+09, ulong:{0}, long:{0}, uint:{0}", uint.MaxValue), TryAllConversions_ValueTypeReference(uint.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:2.1474836E+09, ulong:{0}, long:{0}, uint:{0}, int:{0}", int.MaxValue), TryAllConversions(int.MaxValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:2.1474836E+09, ulong:{0}, long:{0}, uint:{0}, int:{0}", int.MaxValue), TryAllConversions_ValueTypeReference(int.MaxValue));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:{0}, ulong:{0}, long:{0}, uint:{0}, int:{0}, ushort:{0}", ushort.MaxValue), TryAllConversions(ushort.MaxValue));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:{0}, ulong:{0}, long:{0}, uint:{0}, int:{0}, ushort:{0}", ushort.MaxValue), TryAllConversions_ValueTypeReference(ushort.MaxValue));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:{0}, ulong:{0}, long:{0}, uint:{0}, int:{0}, ushort:{0}, short:{0}", short.MaxValue), TryAllConversions(short.MaxValue));
@@ -78,12 +78,12 @@ namespace Arriba.Test.Structures
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:{0}, long:{0}, int:{0}, short:{0}", -1), TryAllConversions_ValueTypeReference(-1));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:{0}, long:{0}, int:{0}, short:{0}", short.MinValue), TryAllConversions(short.MinValue));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:{0}, long:{0}, int:{0}, short:{0}", short.MinValue), TryAllConversions_ValueTypeReference(short.MinValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:-2.147484E+09, long:{0}, int:{0}", int.MinValue), TryAllConversions(int.MinValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:-2.147484E+09, long:{0}, int:{0}", int.MinValue), TryAllConversions_ValueTypeReference(int.MinValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-9.22337203685478E+18, float:-9.223372E+18, long:{0}", long.MinValue), TryAllConversions(long.MinValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-9.22337203685478E+18, float:-9.223372E+18, long:{0}", long.MinValue), TryAllConversions_ValueTypeReference(long.MinValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-3.40282346638529E+38, float:{0}", float.MinValue), TryAllConversions(float.MinValue));
-            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-3.40282346638529E+38, float:{0}", float.MinValue), TryAllConversions_ValueTypeReference(float.MinValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:-2.1474836E+09, long:{0}, int:{0}", int.MinValue), TryAllConversions(int.MinValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}, float:-2.1474836E+09, long:{0}, int:{0}", int.MinValue), TryAllConversions_ValueTypeReference(int.MinValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-9.223372036854776E+18, float:-9.223372E+18, long:{0}", long.MinValue), TryAllConversions(long.MinValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-9.223372036854776E+18, float:-9.223372E+18, long:{0}", long.MinValue), TryAllConversions_ValueTypeReference(long.MinValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-3.4028234663852886E+38, float:{0}", float.MinValue), TryAllConversions(float.MinValue));
+            Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:-3.4028234663852886E+38, float:{0}", float.MinValue), TryAllConversions_ValueTypeReference(float.MinValue));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}", double.MinValue), TryAllConversions(double.MinValue));
             Assert.AreEqual(String.Format("string:{0}, ByteBlock:{0}, double:{0}", double.MinValue), TryAllConversions_ValueTypeReference(double.MinValue));
 
