@@ -27,17 +27,11 @@ namespace Arriba.Server
 {
     internal class Program
     {
-        private const int DefaultPort = 42784;
-
-
-
         private static void Main(string[] args)
         {
             Console.WriteLine("Arriba Local Server\r\n");
 
-
             var configLoader = new ArribaConfigurationLoader(args);
-
 
             // Write trace messages to console if /trace is specified 
             if (configLoader.GetBoolValue("trace", Debugger.IsAttached))
