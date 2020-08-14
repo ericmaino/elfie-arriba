@@ -74,25 +74,25 @@ namespace Arriba.Server
             });
         }
 
-         private IArribaManagementService GetArribaManagementService()
+        private IArribaManagementService GetArribaManagementService()
         {
             var host = GetArribaHost();
             return host.GetService<IArribaManagementService>();
         }
-        
+
         private async Task HandleArribaRequest(HttpContext context)
         {
             var host = GetArribaHost();
 
-            var server = host.GetService<ComposedApplicationServer>();
+            var server = host.GetService<ApplicationServer>();
             var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
             var response = await server.HandleAsync(request, false);
             await Write(request, response, server.ReaderWriter, context);
         }
 
-        private Hosting.Host GetArribaHost()
+        private Composition.Host GetArribaHost()
         {
-            var host = new Arriba.Server.Hosting.Host();
+            var host = new Arriba.Composition.Host();
             host.Compose();
             return host;
         }
