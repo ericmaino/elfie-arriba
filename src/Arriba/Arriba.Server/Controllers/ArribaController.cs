@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Arriba.Server.Controllers
 {
     [ApiController]
-    public class ArribaContoller : ControllerBase
+    public class ArribaController : ControllerBase
     {
         [Route("SomeRoute")]
         public Task<IActionResult> DefaultRequest()
