@@ -1,6 +1,6 @@
 ﻿using Arriba.Configuration;
 
-namespace Arriba.Server
+namespace Arriba.Server.Configuration
 {
     public interface IArribaServerConfiguration : IArribaConfiguration
     {

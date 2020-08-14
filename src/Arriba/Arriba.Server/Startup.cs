@@ -1,6 +1,7 @@
 using Arriba.Communication;
 using Arriba.Configuration;
 using Arriba.Security.OAuth;
+using Arriba.Server.Configuration;
 using Arriba.Server.Owin;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
