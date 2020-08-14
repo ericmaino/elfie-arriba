@@ -1,4 +1,5 @@
-using Arriba.Communication;
+﻿using Arriba.Communication;
+using Arriba.Communication.Server.Application;
 using Arriba.Configuration;
 using Arriba.Server.Configuration;
 using Arriba.Server.Extensions;
@@ -45,6 +46,7 @@ namespace Arriba.Server
             });
 
             services.AddOAuth(serverConfig);
+            services.AddSingleton(GetArribaManagementService());
             services.AddSingleton<IArribaServerConfiguration>((_) => serverConfig);
             services.AddSingleton((_) => serverConfig.OAuthConfig);
             services.AddControllers();
@@ -71,6 +73,12 @@ namespace Arriba.Server
                 if (serverConfig.EnabledAuthentication)
                     fallback.RequireAuthorization();
             });
+        }
+
+        private IArribaManagementService GetArribaManagementService()
+        {
+            var host = GetArribaHost();
+            return host.GetService<IArribaManagementService>();
         }
 
         private async Task HandleArribaRequest(HttpContext context)
