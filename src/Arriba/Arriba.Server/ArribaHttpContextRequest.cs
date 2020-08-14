@@ -10,11 +10,12 @@ using System.Security.Claims;
 using System.Security.Principal;
 using System.Text;
 using System.Web;
-
 using Arriba.Communication;
+using Arriba.Server;
+using Arriba.Server.Owin;
 using Microsoft.AspNetCore.Http;
 
-namespace Arriba.Server.Owin
+namespace Arriba.Owin
 {
     public class ArribaHttpContextRequest : ArribaRequest
     {

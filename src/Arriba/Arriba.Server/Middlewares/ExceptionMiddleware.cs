@@ -4,7 +4,7 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Arriba.Server.Middlewares
+namespace Arriba.Middlewares
 {
     public class ExceptionMiddleware
     {

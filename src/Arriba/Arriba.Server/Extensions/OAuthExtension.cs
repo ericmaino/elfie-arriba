@@ -1,10 +1,10 @@
 ﻿using Arriba.Security.OAuth;
-using Arriba.Server.Configuration;
+using Arriba.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Arriba.Server.Extensions
+namespace Arriba.Extensions
 {
     public static class OAuthExtension
     { 

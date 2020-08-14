@@ -1,9 +1,9 @@
 ﻿using Arriba.Communication;
 using Arriba.Communication.Server.Application;
 using Arriba.Configuration;
-using Arriba.Server.Configuration;
-using Arriba.Server.Extensions;
-using Arriba.Server.Owin;
+using Arriba.Configuration;
+using Arriba.Extensions;
+using Arriba.Owin;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;

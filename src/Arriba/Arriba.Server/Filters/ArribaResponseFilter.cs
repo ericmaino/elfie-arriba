@@ -1,5 +1,5 @@
 ﻿using Arriba.Server;
-using Arriba.Server.Controllers;
+using Arriba.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 

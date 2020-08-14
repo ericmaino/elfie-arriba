@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
-using Arriba.Server.Middlewares;
+using Arriba.Middlewares;
 
-namespace Arriba.Server.Extensions
+namespace Arriba.Extensions
 {
     public static class ExceptionExtensions
     {

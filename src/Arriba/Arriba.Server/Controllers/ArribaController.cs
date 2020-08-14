@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace Arriba.Server.Controllers
+namespace Arriba.Controllers
 {
     [Route("/api/[controller]")]
     [ApiController]
