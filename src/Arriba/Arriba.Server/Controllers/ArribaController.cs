@@ -1,4 +1,5 @@
 ﻿using Arriba.Communication.Server.Application;
+using Arriba.Filters;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
@@ -11,6 +12,7 @@ namespace Arriba.Server.Controllers
 {
     [Route("/api/[controller]")]
     [ApiController]
+    [ArribaResultFilter]
     public class ArribaController : ControllerBase
     {
         private readonly IArribaManagementService _arribaManagement;
