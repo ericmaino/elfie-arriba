@@ -22,21 +22,24 @@ using Arriba.Serialization.Csv;
 using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
 using Arriba.Structures;
-using System.Collections.Specialized;
 using Arriba.ParametersCheckers;
+using Arriba.Communication.Server.Application;
 
 namespace Arriba.Server
 {
     /// <summary>
     /// Arriba restful application for query operations.
     /// </summary>
-    public class ArribaQueryApplication : ArribaApplication
+    public class ArribaQueryApplication : ArribaApplication, IArribaQueryServices
     {
         private const string DefaultFormat = "dictionary";
+        private readonly IArribaQueryServices _service;
 
         public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration)
             : base(f, auth, securityConfiguration)
         {
+            _service = this;
+
             // /table/foo?type=select
             this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.Select);
             this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.Select);
@@ -58,17 +61,13 @@ namespace Arriba.Server
             string tableName = GetAndValidateTableName(route);
             var user = ctx.Request.User;
             NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            string outputFormat = ctx.Request.ResourceParameters["fmt"];
+            string outputFormat = ctx.Request.ResourceParameters["fmt"] ?? "";
+            string rssIURL = ctx.Request.ResourceParameters["iURL"] ?? "";
             Table table = this.Database[tableName];
-
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to select from.");
-            }
 
             try
             {
-                var result = Select(tableName, ctx, p, user);
+                var result = _service.QueryTableForUser(tableName, p, ctx, user);
                 var query = result.Query as SelectQuery;
 
                 // Format the result in the return format
@@ -82,7 +81,7 @@ namespace Arriba.Server
                     case "rss":
                         // If output rss only the ID column
                         query.Columns = new string[] { table.IDColumn.Name };
-                        return ToRssResponse(result, "", $"{query.TableName} : {query.Where}", ctx.Request.ResourceParameters["iURL"]);
+                        return ToRssResponse(result, "", $"{query.TableName} : {query.Where}", rssIURL);
                     default:
                         throw new ArgumentException($"OutputFormat [fmt] passed, '{outputFormat}', was invalid.");
                 }
@@ -91,56 +90,10 @@ namespace Arriba.Server
             {
                 return ExceptionToArribaResponse(ex);
             }
-        }
-
-        private SelectResult Select(string tableName, ITelemetry telemetry, NameValueCollection parameters, IPrincipal user)
-        {
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
-            parameters.ThrowIfNullOrEmpty(nameof(parameters));
-            user.ThrowIfNull(nameof(user));
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
-                throw new ArribaAccessForbiddenException("Not authorized");
-
-            var table = this.Database[tableName];
-            var query = SelectQueryFromRequest(this.Database, parameters);
-            SelectResult result = null;
-
-            // If no columns were requested get only the ID column
-            if (query.Columns == null || query.Columns.Count == 0)
-            {
-                query.Columns = new string[] { table.IDColumn.Name };
-            }
-
-            // Read Joins, if passed
-            IQuery<SelectResult> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, parameters);
-
-            ICorrector correctors = this.CurrentCorrectors(user);
-            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                // Run server correctors
-                wrappedQuery.Correct(correctors);
-            }
-
-            using (telemetry.Monitor(MonitorEventLevel.Information, "Select", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                // Run the query
-                result = this.Database.Query(wrappedQuery, (si) => this.IsInIdentity(user, si));
-            }
-
-            // Canonicalize column names (if query successful)
-            if (result.Details.Succeeded)
-            {
-                query.Columns = result.Values.Columns.Select((cd) => cd.Name).ToArray();
-            }
-
-            return result;
 
         }
 
-        private SelectQuery SelectQueryFromRequest(Database db, NameValueCollection p)
+        private SelectQuery SelectQueryFromRequest(NameValueCollection p)
         {
             SelectQuery query = new SelectQuery();
 
@@ -345,7 +298,278 @@ namespace Arriba.Server
             }
         }
 
-        private AllCountResult AllCount(ITelemetry telemetry, NameValueCollection parameters, IPrincipal user)
+        private async Task<IResponse> AllCount(IRequestContext ctx, Route route)
+        {
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            var user = ctx.Request.User;
+            AllCountResult result;
+
+            try
+            {
+                result = _service.AllCountForUser(p, ctx, user);
+            }
+            catch (Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
+            }
+
+            return ArribaResponse.Ok(result);
+        }
+
+        private async Task<IResponse> Suggest(IRequestContext ctx, Route route)
+        {
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            IPrincipal user = ctx.Request.User;
+            IntelliSenseResult result;
+            
+            try
+            {
+                result = _service.IntelliSenseTableForUser(p, ctx, user);
+            }catch(Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
+            }
+
+            return ArribaResponse.Ok(result);
+        }
+
+
+        private T Query<T>(string tableName, ITelemetry telemetry, IQuery<T> query, IPrincipal user)
+        {
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            ParamChecker.ThrowIfNull(query, nameof(query));
+            user.ThrowIfNull(nameof(user));
+            Database.ThrowIfTableNotFound(tableName);
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
+            query.TableName = tableName;
+
+            // Correct the query with default correctors
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                query.Correct(this.CurrentCorrectors(user));
+            }
+
+            // Execute and return results for the query
+            using (telemetry.Monitor(MonitorEventLevel.Information, query.GetType().Name, type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                T result = this.Database.Query(query, (si) => this.IsInIdentity(user, si));
+                return result;
+            }
+        }
+
+        private async Task<IResponse> Aggregate(IRequestContext ctx, Route route)
+        {
+            string tableName = GetAndValidateTableName(route);
+            var user = ctx.Request.User;
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            AggregationResult result;
+            try
+            {
+                result = _service.AggregateQueryTableForUser(tableName, p, ctx, user);
+            }
+            catch (Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
+            }
+
+            return ArribaResponse.Ok(result);
+        }
+
+        private AggregationQuery BuildAggregateFromContext(ITelemetry telemetry, NameValueCollection parameters)
+        {
+            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            parameters.ThrowIfNullOrEmpty(nameof(parameters));
+
+            string aggregationFunction = parameters["a"] ?? "count";
+            string columnName = parameters["col"];
+            string queryString = parameters["q"];
+
+            AggregationQuery query = new AggregationQuery();
+            query.Aggregator = AggregationQuery.BuildAggregator(aggregationFunction);
+            query.AggregationColumns = String.IsNullOrEmpty(columnName) ? null : new string[] { columnName };
+
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
+            {
+                query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
+            }
+
+            for (char dimensionPrefix = 'd'; true; ++dimensionPrefix)
+            {
+                List<string> dimensionParts = ReadParameterSet(parameters, dimensionPrefix.ToString());
+                if (dimensionParts.Count == 0) break;
+
+                if (dimensionParts.Count == 1 && dimensionParts[0].EndsWith(">"))
+                {
+                    query.Dimensions.Add(new DistinctValueDimension(QueryParser.UnwrapColumnName(dimensionParts[0].TrimEnd('>'))));
+                }
+                else
+                {
+                    query.Dimensions.Add(new AggregationDimension("", dimensionParts));
+                }
+            }
+
+            return query;
+        }
+
+        private async Task<IResponse> Distinct(IRequestContext ctx, Route route)
+        {
+            string tableName = GetAndValidateTableName(route);
+            var user = ctx.Request.User;
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            DistinctResult result;
+            try
+            {
+                result = _service.DistinctQueryTableForUser(tableName, p, ctx, user);
+            }
+            catch (Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
+            }
+
+            return ArribaResponse.Ok(result);
+        }
+
+        private DistinctQuery BuildDistinctFromContext(ITelemetry telemetry, NameValueCollection parameters)
+        {
+            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            parameters.ThrowIfNullOrEmpty(nameof(parameters));
+
+            DistinctQueryTop query = new DistinctQueryTop();
+            query.Column = parameters["col"];
+            if (String.IsNullOrEmpty(query.Column)) throw new ArgumentException("Distinct Column [col] must be passed.");
+
+            string queryString = parameters["q"];
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
+            {
+                query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
+            }
+
+            string take = parameters["t"];
+            if (!String.IsNullOrEmpty(take)) query.Count = UInt16.Parse(take);
+
+            return query;
+        }
+
+        public SelectResult QueryTableForUser(string tableName, NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
+        {
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            parameters.ThrowIfNullOrEmpty(nameof(parameters));
+            user.ThrowIfNull(nameof(user));
+            Database.ThrowIfTableNotFound(tableName);
+            
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
+            var table = this.Database[tableName];
+            var query = SelectQueryFromRequest(parameters);
+            SelectResult result = null;
+
+            // If no columns were requested get only the ID column
+            if (query.Columns == null || query.Columns.Count == 0)
+            {
+                query.Columns = new string[] { table.IDColumn.Name };
+            }
+
+            // Read Joins, if passed
+            IQuery<SelectResult> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, parameters);
+
+            ICorrector correctors = this.CurrentCorrectors(user);
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                // Run server correctors
+                wrappedQuery.Correct(correctors);
+            }
+
+            using (telemetry.Monitor(MonitorEventLevel.Information, "Select", type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                // Run the query
+                result = this.Database.Query(wrappedQuery, (si) => this.IsInIdentity(user, si));
+            }
+
+            // Canonicalize column names (if query successful)
+            if (result.Details.Succeeded)
+            {
+                query.Columns = result.Values.Columns.Select((cd) => cd.Name).ToArray();
+            }
+
+            return result;
+        }
+
+        public DistinctResult DistinctQueryTableForUser(string tableName, NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
+        {
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            parameters.ThrowIfNullOrEmpty(nameof(parameters));
+            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            user.ThrowIfNull(nameof(user));
+            Database.ThrowIfTableNotFound(tableName);
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
+            IQuery<DistinctResult> query = BuildDistinctFromContext(telemetry, parameters);
+
+            var wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, parameters);
+
+            return Query(tableName, telemetry, wrappedQuery, user);
+        }
+
+        public AggregationResult AggregateQueryTableForUser(string tableName, NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
+        {
+            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
+            parameters.ThrowIfNullOrEmpty(nameof(parameters));
+            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            user.ThrowIfNull(nameof(user));
+            Database.ThrowIfTableNotFound(tableName);
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
+            IQuery<AggregationResult> query = BuildAggregateFromContext(telemetry, parameters);
+
+            var wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, parameters);
+
+            return Query(tableName, telemetry, wrappedQuery, user);
+        }
+
+        public IntelliSenseResult IntelliSenseTableForUser(NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
+        {
+            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            parameters.ThrowIfNullOrEmpty(nameof(parameters));
+            user.ThrowIfNull(nameof(user));
+
+            IntelliSenseResult result = null;
+            string query = parameters["q"];
+            string selectedTable = parameters["t"];
+
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Suggest", type: "Suggest", detail: query))
+            {
+                // Get all available tables
+                List<Table> tables = new List<Table>();
+                foreach (string tableName in this.Database.TableNames)
+                {
+                    if (this.HasTableAccess(tableName, user, PermissionScope.Reader))
+                    {
+                        if (String.IsNullOrEmpty(selectedTable) || selectedTable.Equals(tableName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            tables.Add(this.Database[tableName]);
+                        }
+                    }
+                }
+
+                // Get IntelliSense results and return
+                QueryIntelliSense qi = new QueryIntelliSense();
+                result = qi.GetIntelliSenseItems(query, tables);
+            }
+
+            return result;
+        }
+
+        public AllCountResult AllCountForUser(NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
         {
             ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
@@ -409,202 +633,6 @@ namespace Arriba.Server
             });
 
             return result;
-        }
-
-        private async Task<IResponse> AllCount(IRequestContext ctx, Route route)
-        {
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            var user = ctx.Request.User;
-            AllCountResult result;
-
-            try
-            {
-                result = AllCount(ctx, p, user);
-            }
-            catch (Exception ex)
-            {
-                return ExceptionToArribaResponse(ex);
-            }
-
-            return ArribaResponse.Ok(result);
-        }
-
-        private IntelliSenseResult Suggest(ITelemetry telemetry, NameValueCollection parameters, IPrincipal user)
-        {
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
-            parameters.ThrowIfNullOrEmpty(nameof(parameters));
-            user.ThrowIfNull(nameof(user));
-
-            if (!ValidateDatabaseAccessForUser(user, PermissionScope.Reader))
-                throw new ArribaAccessForbiddenException("Not authorized");
-
-            IntelliSenseResult result = null;
-            string query = parameters["q"];
-            string selectedTable = parameters["t"];
-
-            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Suggest", type: "Suggest", detail: query))
-            {
-                // Get all available tables
-                List<Table> tables = new List<Table>();
-                foreach (string tableName in this.Database.TableNames)
-                {
-                    if (this.HasTableAccess(tableName, user, PermissionScope.Reader))
-                    {
-                        if (String.IsNullOrEmpty(selectedTable) || selectedTable.Equals(tableName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            tables.Add(this.Database[tableName]);
-                        }
-                    }
-                }
-
-                // Get IntelliSense results and return
-                QueryIntelliSense qi = new QueryIntelliSense();
-                result = qi.GetIntelliSenseItems(query, tables);
-            }
-
-            return result;
-        }
-
-        private async Task<IResponse> Suggest(IRequestContext ctx, Route route)
-        {
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            IPrincipal user = ctx.Request.User;
-            IntelliSenseResult result;
-
-            try
-            {
-                result = Suggest(ctx, p, user);
-            }
-            catch (Exception ex)
-            {
-                return ExceptionToArribaResponse(ex);
-            }
-
-            return ArribaResponse.Ok(result);
-        }
-
-
-        private T Query<T>(string tableName, ITelemetry telemetry, IQuery<T> query, IPrincipal user)
-        {
-            tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
-            ParamChecker.ThrowIfNull(query, nameof(query));
-            user.ThrowIfNull(nameof(user));
-            Database.ThrowIfTableNotFound(tableName);
-
-            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
-                throw new ArribaAccessForbiddenException("Not authorized");
-
-            query.TableName = tableName;
-
-            // Correct the query with default correctors
-            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                query.Correct(this.CurrentCorrectors(user));
-            }
-
-            // Execute and return results for the query
-            using (telemetry.Monitor(MonitorEventLevel.Information, query.GetType().Name, type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                T result = this.Database.Query(query, (si) => this.IsInIdentity(user, si));
-                return result;
-            }
-        }
-
-        private IResponse Query<T>(IRequestContext ctx, Route route, IQuery<T> query, NameValueCollection p)
-        {
-            IQuery<T> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, p);
-            var user = ctx.Request.User;
-
-            // Ensure the table exists and set it on the query
-            string tableName = GetAndValidateTableName(route);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to query.");
-            }
-
-            T result;
-            try
-            {
-                result = Query(tableName, ctx, wrappedQuery, user);
-            }
-            catch (Exception ex)
-            {
-                return ExceptionToArribaResponse(ex);
-            }
-
-            return ArribaResponse.Ok(result);
-        }
-
-        private async Task<IResponse> Aggregate(IRequestContext ctx, Route route)
-        {
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            IQuery<AggregationResult> query = BuildAggregateFromContext(ctx, p);
-            return Query(ctx, route, query, p);
-        }
-
-        private AggregationQuery BuildAggregateFromContext(ITelemetry telemetry, NameValueCollection parameters)
-        {
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
-            parameters.ThrowIfNullOrEmpty(nameof(parameters));
-
-            string aggregationFunction = parameters["a"] ?? "count";
-            string columnName = parameters["col"];
-            string queryString = parameters["q"];
-
-            AggregationQuery query = new AggregationQuery();
-            query.Aggregator = AggregationQuery.BuildAggregator(aggregationFunction);
-            query.AggregationColumns = String.IsNullOrEmpty(columnName) ? null : new string[] { columnName };
-
-            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
-            {
-                query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
-            }
-
-            for (char dimensionPrefix = 'd'; true; ++dimensionPrefix)
-            {
-                List<string> dimensionParts = ReadParameterSet(parameters, dimensionPrefix.ToString());
-                if (dimensionParts.Count == 0) break;
-
-                if (dimensionParts.Count == 1 && dimensionParts[0].EndsWith(">"))
-                {
-                    query.Dimensions.Add(new DistinctValueDimension(QueryParser.UnwrapColumnName(dimensionParts[0].TrimEnd('>'))));
-                }
-                else
-                {
-                    query.Dimensions.Add(new AggregationDimension("", dimensionParts));
-                }
-            }
-
-            return query;
-        }
-
-        private async Task<IResponse> Distinct(IRequestContext ctx, Route route)
-        {
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            IQuery<DistinctResult> query = BuildDistinctFromContext(ctx, p);
-            return Query(ctx, route, query, p);
-        }
-
-        private DistinctQuery BuildDistinctFromContext(ITelemetry telemetry, NameValueCollection parameters)
-        {
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
-            parameters.ThrowIfNullOrEmpty(nameof(parameters));
-
-            DistinctQueryTop query = new DistinctQueryTop();
-            query.Column = parameters["col"];
-            if (String.IsNullOrEmpty(query.Column)) throw new ArgumentException("Distinct Column [col] must be passed.");
-
-            string queryString = parameters["q"];
-            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
-            {
-                query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
-            }
-
-            string take = parameters["t"];
-            if (!String.IsNullOrEmpty(take)) query.Count = UInt16.Parse(take);
-
-            return query;
         }
     }
 }
