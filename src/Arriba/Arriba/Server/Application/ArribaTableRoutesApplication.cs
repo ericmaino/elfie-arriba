@@ -284,19 +284,6 @@ namespace Arriba.Server.Application
             }
         }
 
-        private IResponse ExceptionToArribaResponse(Exception ex)
-        {
-            ParamChecker.ThrowIfNull(ex, nameof(ex));
-
-            if (ex is ArribaAccessForbiddenException)
-                return ArribaResponse.Forbidden(ex.Message);
-
-            if (ex is TableNotFoundException)
-                return ArribaResponse.NotFound(ex.Message);
-
-            return ArribaResponse.BadRequest(ex.Message);
-        }
-
         private enum AuthorizationOperation
         {
             Grant = 1,
