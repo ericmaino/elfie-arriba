@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -38,16 +38,16 @@ namespace Arriba.Server
             : base(f, auth, securityConfiguration)
         {
             // /table/foo?type=select
-            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.ValidateReadAccessAsync, this.Select);
-            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.ValidateReadAccessAsync, this.Select);
+            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.Select);
+            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.Select);
 
             // /table/foo?type=distinct
-            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.ValidateReadAccessAsync, this.Distinct);
-            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.ValidateReadAccessAsync, this.Distinct);
+            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.Distinct);
+            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.Distinct);
 
             // /table/foo?type=aggregate
-            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.ValidateReadAccessAsync, this.Aggregate);
-            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.ValidateReadAccessAsync, this.Aggregate);
+            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.Aggregate);
+            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.Aggregate);
 
             this.GetAsync(new RouteSpecification("/allCount"), this.AllCount);
             this.GetAsync(new RouteSpecification("/suggest"), this.Suggest);
@@ -94,6 +94,10 @@ namespace Arriba.Server
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
             user.ThrowIfNull(nameof(user));
             Database.ThrowIfTableNotFound(tableName);
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
             var table = this.Database[tableName];
             var query = SelectQueryFromRequest(this.Database, parameters);
             SelectResult result = null;
@@ -340,6 +344,10 @@ namespace Arriba.Server
             ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
             user.ThrowIfNull(nameof(user));
+
+            if (!ValidateDatabaseAccessForUser(user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
             string queryString = parameters["q"] ?? "";
             AllCountResult result = new AllCountResult(queryString);
 
@@ -411,6 +419,10 @@ namespace Arriba.Server
             ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
             user.ThrowIfNull(nameof(user));
+
+            if (!ValidateDatabaseAccessForUser(user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
             IntelliSenseResult result = null;
             string query = parameters["q"];
             string selectedTable = parameters["t"];
@@ -454,6 +466,10 @@ namespace Arriba.Server
             ParamChecker.ThrowIfNull(query, nameof(query));
             user.ThrowIfNull(nameof(user));
             Database.ThrowIfTableNotFound(tableName);
+
+            if (!ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
+                throw new ArribaAccessForbiddenException("Not authorized");
+
             query.TableName = tableName;
 
             // Correct the query with default correctors
