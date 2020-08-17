@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -55,48 +55,17 @@ namespace Arriba.Server
         {
             string tableName = GetAndValidateTableName(route);
             var user = ctx.Request.User;
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            string outputFormat = ctx.Request.ResourceParameters["fmt"];
+            Table table = this.Database[tableName];
 
             if (!this.Database.TableExists(tableName))
             {
                 return ArribaResponse.NotFound("Table not found to select from.");
             }
 
-            string outputFormat = ctx.Request.ResourceParameters["fmt"];
-
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            SelectQuery query = SelectQueryFromRequest(this.Database, p);
-            query.TableName = tableName;
-
-            Table table = this.Database[tableName];
-            SelectResult result = null;
-
-            // If no columns were requested or this is RSS, get only the ID column
-            if (query.Columns == null || query.Columns.Count == 0 || String.Equals(outputFormat, "rss", StringComparison.OrdinalIgnoreCase))
-            {
-                query.Columns = new string[] { table.IDColumn.Name };
-            }
-
-            // Read Joins, if passed
-            IQuery<SelectResult> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, p);
-
-            ICorrector correctors = this.CurrentCorrectors(user);
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                // Run server correctors
-                wrappedQuery.Correct(correctors);
-            }
-
-            using (ctx.Monitor(MonitorEventLevel.Information, "Select", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                // Run the query
-                result = this.Database.Query(wrappedQuery, (si) => this.IsInIdentity(ctx.Request.User, si));
-            }
-
-            // Canonicalize column names (if query successful)
-            if (result.Details.Succeeded)
-            {
-                query.Columns = result.Values.Columns.Select((cd) => cd.Name).ToArray();
-            }
+            var result = Select(tableName, ctx, p, user);
+            var query = result.Query as SelectQuery;
 
             // Format the result in the return format
             switch ((outputFormat ?? "").ToLowerInvariant())
@@ -107,10 +76,51 @@ namespace Arriba.Server
                 case "csv":
                     return ToCsvResponse(result, $"{tableName}-{DateTime.Now:yyyyMMdd}.csv");
                 case "rss":
-                    return ToRssResponse(result, "", query.TableName + ": " + query.Where, ctx.Request.ResourceParameters["iURL"]);
+                    // If output rss only the ID column
+                    query.Columns = new string[] { table.IDColumn.Name };
+                    return ToRssResponse(result, "", $"{query.TableName} : {query.Where}", ctx.Request.ResourceParameters["iURL"]);
                 default:
                     throw new ArgumentException($"OutputFormat [fmt] passed, '{outputFormat}', was invalid.");
             }
+
+        }
+
+        private SelectResult Select(string tableName, ITelemetry telemetry, NameValueCollection parameters, IPrincipal user)
+        {
+            var table = this.Database[tableName];
+            var query = SelectQueryFromRequest(this.Database, parameters);
+            SelectResult result = null;
+
+            // If no columns were requested get only the ID column
+            if (query.Columns == null || query.Columns.Count == 0)
+            {
+                query.Columns = new string[] { table.IDColumn.Name };
+            }
+
+            // Read Joins, if passed
+            IQuery<SelectResult> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, parameters);
+
+            ICorrector correctors = this.CurrentCorrectors(user);
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                // Run server correctors
+                wrappedQuery.Correct(correctors);
+            }
+
+            using (telemetry.Monitor(MonitorEventLevel.Information, "Select", type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                // Run the query
+                result = this.Database.Query(wrappedQuery, (si) => this.IsInIdentity(user, si));
+            }
+
+            // Canonicalize column names (if query successful)
+            if (result.Details.Succeeded)
+            {
+                query.Columns = result.Values.Columns.Select((cd) => cd.Name).ToArray();
+            }
+
+            return result;
+
         }
 
         private SelectQuery SelectQueryFromRequest(Database db, NameValueCollection p)
@@ -318,28 +328,25 @@ namespace Arriba.Server
             }
         }
 
-        private async Task<IResponse> AllCount(IRequestContext ctx, Route route)
+        private AllCountResult AllCount(ITelemetry telemetry, NameValueCollection parameters, IPrincipal user)
         {
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            var user = ctx.Request.User;
-
-            string queryString = p["q"] ?? "";
+            string queryString = parameters["q"] ?? "";
             AllCountResult result = new AllCountResult(queryString);
 
             // Build a Count query
             IQuery<AggregationResult> query = new AggregationQuery("count", null, queryString);
 
             // Wrap in Joins, if found
-            query = WrapInJoinQueryIfFound(query, this.Database, p);
+            query = WrapInJoinQueryIfFound(query, this.Database, parameters);
 
             // Run server correctors
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "AllCount", detail: query.Where.ToString()))
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Correct", type: "AllCount", detail: query.Where.ToString()))
             {
                 query.Correct(this.CurrentCorrectors(user));
             }
 
             // Accumulate Results for each table
-            using (ctx.Monitor(MonitorEventLevel.Information, "AllCount", type: "AllCount", detail: query.Where.ToString()))
+            using (telemetry.Monitor(MonitorEventLevel.Information, "AllCount", type: "AllCount", detail: query.Where.ToString()))
             {
                 IExpression defaultWhere = query.Where;
 
@@ -350,7 +357,7 @@ namespace Arriba.Server
                         query.TableName = tableName;
                         query.Where = defaultWhere;
 
-                        AggregationResult tableCount = this.Database.Query(query, (si) => this.IsInIdentity(ctx.Request.User, si));
+                        AggregationResult tableCount = this.Database.Query(query, (si) => this.IsInIdentity(user, si));
 
                         if (!tableCount.Details.Succeeded || tableCount.Values == null)
                         {
@@ -377,20 +384,25 @@ namespace Arriba.Server
                 return right.Count.CompareTo(left.Count);
             });
 
+            return result;
+        }
+
+        private async Task<IResponse> AllCount(IRequestContext ctx, Route route)
+        {
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            var user = ctx.Request.User;
+            var result = AllCount(ctx, p, user);
+
             return ArribaResponse.Ok(result);
         }
 
-        private async Task<IResponse> Suggest(IRequestContext ctx, Route route)
+        private IntelliSenseResult Suggest(ITelemetry telemetry, NameValueCollection parameters, IPrincipal user)
         {
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-
-            string query = p["q"];
-            string selectedTable = p["t"];
-            IPrincipal user = ctx.Request.User;
-
             IntelliSenseResult result = null;
+            string query = parameters["q"];
+            string selectedTable = parameters["t"];
 
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Suggest", type: "Suggest", detail: query))
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Suggest", type: "Suggest", detail: query))
             {
                 // Get all available tables
                 List<Table> tables = new List<Table>();
@@ -410,7 +422,34 @@ namespace Arriba.Server
                 result = qi.GetIntelliSenseItems(query, tables);
             }
 
+            return result;
+        }
+
+        private async Task<IResponse> Suggest(IRequestContext ctx, Route route)
+        {
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            IPrincipal user = ctx.Request.User;
+            var result = Suggest(ctx, p, user);
             return ArribaResponse.Ok(result);
+        }
+
+
+        private T Query<T>(string tableName, ITelemetry telemetry, IQuery<T> query, IPrincipal user)
+        {
+            query.TableName = tableName;
+
+            // Correct the query with default correctors
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                query.Correct(this.CurrentCorrectors(user));
+            }
+
+            // Execute and return results for the query
+            using (telemetry.Monitor(MonitorEventLevel.Information, query.GetType().Name, type: "Table", identity: tableName, detail: query.Where.ToString()))
+            {
+                T result = this.Database.Query(query, (si) => this.IsInIdentity(user, si));
+                return result;
+            }
         }
 
         private IResponse Query<T>(IRequestContext ctx, Route route, IQuery<T> query, NameValueCollection p)
@@ -425,20 +464,9 @@ namespace Arriba.Server
                 return ArribaResponse.NotFound("Table not found to query.");
             }
 
-            query.TableName = tableName;
+            var result = Query(tableName, ctx, wrappedQuery, user);
+            return ArribaResponse.Ok(result);
 
-            // Correct the query with default correctors
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                query.Correct(this.CurrentCorrectors(user));
-            }
-
-            // Execute and return results for the query
-            using (ctx.Monitor(MonitorEventLevel.Information, query.GetType().Name, type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                T result = this.Database.Query(wrappedQuery, (si) => this.IsInIdentity(ctx.Request.User, si));
-                return ArribaResponse.Ok(result);
-            }
         }
 
         private async Task<IResponse> Aggregate(IRequestContext ctx, Route route)
@@ -448,24 +476,24 @@ namespace Arriba.Server
             return Query(ctx, route, query, p);
         }
 
-        private AggregationQuery BuildAggregateFromContext(IRequestContext ctx, NameValueCollection p)
+        private AggregationQuery BuildAggregateFromContext(ITelemetry telemetry, NameValueCollection parameters)
         {
-            string aggregationFunction = p["a"] ?? "count";
-            string columnName = p["col"];
-            string queryString = p["q"];
+            string aggregationFunction = parameters["a"] ?? "count";
+            string columnName = parameters["col"];
+            string queryString = parameters["q"];
 
             AggregationQuery query = new AggregationQuery();
             query.Aggregator = AggregationQuery.BuildAggregator(aggregationFunction);
             query.AggregationColumns = String.IsNullOrEmpty(columnName) ? null : new string[] { columnName };
 
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
             {
                 query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
             }
 
             for (char dimensionPrefix = 'd'; true; ++dimensionPrefix)
             {
-                List<string> dimensionParts = ReadParameterSet(p, dimensionPrefix.ToString());
+                List<string> dimensionParts = ReadParameterSet(parameters, dimensionPrefix.ToString());
                 if (dimensionParts.Count == 0) break;
 
                 if (dimensionParts.Count == 1 && dimensionParts[0].EndsWith(">"))
@@ -488,19 +516,19 @@ namespace Arriba.Server
             return Query(ctx, route, query, p);
         }
 
-        private DistinctQuery BuildDistinctFromContext(IRequestContext ctx, NameValueCollection p)
+        private DistinctQuery BuildDistinctFromContext(ITelemetry telemetry, NameValueCollection parameters)
         {
             DistinctQueryTop query = new DistinctQueryTop();
-            query.Column = p["col"];
+            query.Column = parameters["col"];
             if (String.IsNullOrEmpty(query.Column)) throw new ArgumentException("Distinct Column [col] must be passed.");
 
-            string queryString = p["q"];
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
+            string queryString = parameters["q"];
+            using (telemetry.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
             {
                 query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
             }
 
-            string take = p["t"];
+            string take = parameters["t"];
             if (!String.IsNullOrEmpty(take)) query.Count = UInt16.Parse(take);
 
             return query;
