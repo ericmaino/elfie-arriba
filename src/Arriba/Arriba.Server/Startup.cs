@@ -1,12 +1,9 @@
-using Arriba.Communication;
+﻿using Arriba.Communication;
 using Arriba.Configuration;
-using Arriba.Security.OAuth;
 using Arriba.Server.Configuration;
+using Arriba.Server.Extensions;
 using Arriba.Server.Owin;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,23 +44,7 @@ namespace Arriba.Server
                 });
             });
 
-            if (serverConfig.EnabledAuthentication)
-            {
-                var azureTokens = AzureJwtTokenFactory.CreateAsync(serverConfig.OAuthConfig).Result;
-                services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                    .AddJwtBearer(azureTokens.Configure);
-
-                var jwtBearerPolicy = new AuthorizationPolicyBuilder()
-                   .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                   .RequireAuthenticatedUser()
-                   .Build();
-
-                services.AddAuthorization(auth =>
-                {
-                    auth.DefaultPolicy = jwtBearerPolicy;
-                });
-            }
-
+            services.AddOAuth(serverConfig);
             services.AddSingleton<IArribaServerConfiguration>((_) => serverConfig);
             services.AddSingleton((_) => serverConfig.OAuthConfig);
             services.AddControllers();
@@ -82,6 +63,7 @@ namespace Arriba.Server
 
             if (serverConfig.EnabledAuthentication)
                 app.UseAuthorization();
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
