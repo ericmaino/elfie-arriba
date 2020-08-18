@@ -35,6 +35,7 @@ namespace Arriba.Composition
 
             services.AddSingleton<ClaimsAuthenticationService>();
             services.AddSingleton<IArribaManagementService, ArribaManagementService>();
+            services.AddSingleton<IArribaQueryServices, ArribaQueryServices>();
             services.AddSingleton<IObjectCacheFactory, MemoryCacheFactory>();
             services.AddSingleton<SecureDatabase>();
             services.AddSingleton<DatabaseFactory>();
