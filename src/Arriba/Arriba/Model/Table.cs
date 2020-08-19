@@ -674,15 +674,11 @@ namespace Arriba.Model
                 Parallel.ForEach(rangePartitioner,
                     delegate (Tuple<int, int> range, ParallelLoopState unused)
                     {
-                        ValueTypeReference<T> vtr = new ValueTypeReference<T>();
-                        Value v = Value.Create(null);
+                        PartitionConvert<T> p = new PartitionConvert<T>(table._partitionBits);
+                        
                         for (int i = range.Item1; i < range.Item2; ++i)
                         {
-                            // Hash the ID for each item and compute the partition that the item belongs to
-                            vtr.Value = idColumn[i];
-                            v.Assign(vtr);
-                            int idHash = v.GetHashCode();
-                            int partitionId = PartitionMask.IndexOfHash(idHash, table._partitionBits);
+                            int partitionId = p.GetPartition(idColumn[i]);
 
                             localPartitionIds[i] = partitionId;
                             Interlocked.Increment(ref localPartitionInfo[partitionId].Count);
@@ -922,5 +918,27 @@ namespace Arriba.Model
             }
         }
         #endregion
+    }
+
+    public class PartitionConvert<T>
+    {
+        private readonly ValueTypeReference<T> vtr = new ValueTypeReference<T>();
+        private readonly Value v = Value.Create(null);
+        private readonly byte _partitionBits;
+
+        public PartitionConvert(byte partitionBits)
+        {
+            _partitionBits = partitionBits;
+        }
+
+        public int GetPartition(T value)
+        {
+            // Hash the ID for each item and compute the partition that the item belongs to
+            vtr.Value = value;
+            v.Assign(vtr);
+            int idHash = v.GetHashCode();
+            int partitionId = PartitionMask.IndexOfHash(idHash, _partitionBits);
+            return partitionId;
+        }
     }
 }
