@@ -1,4 +1,4 @@
-﻿using Arriba.Communication;
+using Arriba.Communication;
 using Arriba.Configuration;
 using Arriba.Server.Configuration;
 using Arriba.Server.Extensions;
@@ -75,14 +75,20 @@ namespace Arriba.Server
 
         private async Task HandleArribaRequest(HttpContext context)
         {
-            var host = new Arriba.Server.Hosting.Host();
-            host.Add<JsonConverter>(new StringEnumConverter());
-            host.Compose();
+            var host = GetArribaHost();
 
             var server = host.GetService<ComposedApplicationServer>();
             var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
             var response = await server.HandleAsync(request, false);
             await Write(request, response, server.ReaderWriter, context);
+        }
+
+        private Hosting.Host GetArribaHost()
+        {
+            var host = new Arriba.Server.Hosting.Host();
+            host.Add<JsonConverter>(new StringEnumConverter());
+            host.Compose();
+            return host;
         }
 
         private async Task Write(ArribaHttpContextRequest request, IResponse response, IContentReaderWriterService readerWriter, HttpContext context)
