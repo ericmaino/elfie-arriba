@@ -444,14 +444,7 @@ namespace Arriba.Model
                 // Verify all passed columns exist (if not adding them)
                 if (options.AddMissingColumns == false)
                 {
-                    foreach (ColumnDetails column in values.Columns)
-                    {
-                        ColumnDetails foundColumn;
-                        if (!_partitions[0].DetailsByColumn.TryGetValue(column.Name, out foundColumn))
-                        {
-                            throw new ArribaException(StringExtensions.Format("AddOrUpdate failed because values were passed for column '{0}', which is not in the table. Use AddColumn to add all columns first or ensure the first block added to the Table has all desired columns.", column.Name));
-                        }
-                    }
+                    VerifyNoColumnsAreMissing(values);
                 }
 
                 // Non-Parallel Implementation
@@ -510,6 +503,18 @@ namespace Arriba.Model
             finally
             {
                 _locker.ExitWriteLock();
+            }
+        }
+
+        private void VerifyNoColumnsAreMissing(DataBlock.ReadOnlyDataBlock values)
+        {
+            foreach (ColumnDetails column in values.Columns)
+            {
+                ColumnDetails foundColumn;
+                if (!_partitions[0].DetailsByColumn.TryGetValue(column.Name, out foundColumn))
+                {
+                    throw new ArribaException(StringExtensions.Format("AddOrUpdate failed because values were passed for column '{0}', which is not in the table. Use AddColumn to add all columns first or ensure the first block added to the Table has all desired columns.", column.Name));
+                }
             }
         }
 
