@@ -479,12 +479,11 @@ namespace Arriba.Model
                 Action<Tuple<int, int>, ParallelLoopState> forBody =
                     delegate (Tuple<int, int> range, ParallelLoopState unused)
                     {
-                        for (int p = range.Item1; p < range.Item2; ++p)
+                        for (int partitionIndex = range.Item1; partitionIndex < range.Item2; ++partitionIndex)
                         {
-                            int startIndex = partitionInfo[p].StartIndex;
-                            int length = partitionInfo[p].Count;
-                            DataBlock.ReadOnlyDataBlock partitionValues = datablock.ProjectChain(sortOrder, startIndex, length);
-                            _partitions[p].AddOrUpdate(partitionValues, options);
+                            var partition = partitionInfo[partitionIndex];
+                            DataBlock.ReadOnlyDataBlock partitionBlock = datablock.ProjectChain(sortOrder, partition.StartIndex, partition.Count);
+                            _partitions[partitionIndex].AddOrUpdate(partitionBlock, options);
                         }
                     };
 
