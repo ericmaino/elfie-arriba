@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -810,14 +810,17 @@ namespace Arriba.Model
 
                 string tablePath = TableCachePath(tableName);
 
+                var orderedPartitions = new SortedList<uint, Partition>();
+                
                 if (partitions != null)
                 {
                     foreach (string partitionFile in partitions)
                     {
                         Partition p = new Partition();
                         p.Read(Path.Combine(tablePath, partitionFile + ".bin"));
-                        _partitions.Add(p);
+                        orderedPartitions.Add((uint)p.Mask.Value, p);
                     }
+
                 }
                 else
                 {
@@ -828,13 +831,20 @@ namespace Arriba.Model
                         {
                             Partition p = new Partition();
                             p.Read(partitionFile);
-                            _partitions.Add(p);
+                            orderedPartitions.Add((uint)p.Mask.Value, p);
                         }
                     }
                 }
 
-                // If there are no partitions to load, re-add the default 'all' one
-                if (_partitions.Count == 0) _partitions.Add(new Partition(PartitionMask.All));
+                if (orderedPartitions.Count > 0)
+                {
+                    _partitions.AddRange(orderedPartitions.Values);
+                } 
+                else
+                {
+                    // If there are no partitions to load, re-add the default 'all' one
+                    _partitions.Add(new Partition(PartitionMask.All));
+                }
 
                 // Reset the number of partition bits
                 _partitionBits = _partitions[0].Mask.BitCount;
