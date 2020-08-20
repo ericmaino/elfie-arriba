@@ -1,13 +1,12 @@
-﻿using Arriba.Caching;
 using Arriba.Communication.Server.Application;
+using Arriba.Composition;
 using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
 using Arriba.Monitoring;
-using Arriba.Server.Authentication;
-using Arriba.Server.Hosting;
 using Arriba.Structures;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Security.Claims;
@@ -21,7 +20,7 @@ namespace Arriba.Test.Services
         //Without specifying a type identity.IsAuthenticated always returns false
         private const string AuthenticationType = "TestAuthenticationType";
         protected const string TableName = "Users";
-
+        
         protected readonly SecureDatabase _db;
 
         protected readonly ClaimsPrincipal _nonAuthenticatedUser;
@@ -30,27 +29,36 @@ namespace Arriba.Test.Services
         protected readonly ClaimsPrincipal _writer;
 
         protected readonly IArribaManagementService _service;
-        protected readonly DatabaseFactory _databaseFactory;
         protected readonly ITelemetry _telemetry;
+
+        protected readonly IServiceProvider _serviceProvider;
+        
         public ArribaServiceBase()
         {
+            var securityConfiguration = new ArribaServerConfiguration();
+            securityConfiguration.EnabledAuthentication = true;
+
             CreateTestDatabase(TableName);
+
+            _serviceProvider = InitServiceProvider(securityConfiguration);
 
             _nonAuthenticatedUser = new ClaimsPrincipal();
             _reader = GetAuthenticatedUser("user1", PermissionScope.Reader);
             _writer = GetAuthenticatedUser("user2", PermissionScope.Writer);
             _owner = GetAuthenticatedUser("user3", PermissionScope.Owner);
-
-            _databaseFactory = new DatabaseFactory();
-            var securityConfiguration = new ArribaServerConfiguration();
-            securityConfiguration.EnabledAuthentication = true;
-            var claimsAuth = new ClaimsAuthenticationService(new MemoryCacheFactory());
-            var factory = new ArribaManagementServiceFactory(_databaseFactory.GetDatabase(), claimsAuth, securityConfiguration);
-
-            _service = factory.CreateArribaManagementService("Users");
+            
+            _service = _serviceProvider.GetService<IArribaManagementService>();
             _db = _service.GetDatabaseForOwner(_owner);
 
             _telemetry = new Arriba.Monitoring.Telemetry(MonitorEventLevel.Verbose, "TEST", null);
+        }
+
+        private IServiceProvider InitServiceProvider(ISecurityConfiguration securityConfiguration)
+        {
+            var factory = new DefaultServiceProviderFactory();
+            var services = new ServiceCollection();
+            services.AddArribaServices(securityConfiguration);
+            return factory.CreateServiceProvider(services);
         }
 
         private void CreateTestDatabase(string tableName)
