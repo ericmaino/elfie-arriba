@@ -426,49 +426,49 @@ namespace Arriba.Model
         ///  and must be the first column. If an ID is not known, the item will be added.
         ///  For each item, the value for each column is set to the provided values.
         /// </summary>
-        /// <param name="values">Set of Columns and values to add or update</param>
+        /// <param name="datablock">Set of Columns and values to add or update</param>
         /// <param name="options">Options to adjust behavior of AddOrUpdate</param>
-        public void AddOrUpdate(DataBlock.ReadOnlyDataBlock values, AddOrUpdateOptions options)
+        public void AddOrUpdate(DataBlock.ReadOnlyDataBlock datablock, AddOrUpdateOptions options)
         {
             _locker.EnterWriteLock();
             try
             {
                 // Add columns from data, if this is the first data and columns weren't predefined
-                if (options.AddMissingColumns) AddColumnsFromBlock(values);
+                if (options.AddMissingColumns) AddColumnsFromBlock(datablock);
 
                 ColumnDetails idColumn = _partitions[0].IDColumn;
                 if (idColumn == null) throw new ArribaException("Items cannot be added to this Table because it does not yet have an ID column defined. Call AddColumn with exactly one column with 'IsPrimaryKey' true and then items may be added.");
-                int idColumnIndex = values.IndexOfColumn(idColumn.Name);
+                int idColumnIndex = datablock.IndexOfColumn(idColumn.Name);
                 if (idColumnIndex == -1) throw new ArribaException(StringExtensions.Format("AddOrUpdates must be passed the ID column, '{0}', in order to tell which items to update.", idColumn.Name));
 
                 // Verify all passed columns exist (if not adding them)
                 if (options.AddMissingColumns == false)
                 {
-                    VerifyNoColumnsAreMissing(values);
+                    VerifyNoColumnsAreMissing(datablock);
                 }
 
                 // Non-Parallel Implementation
                 if (_partitions.Count == 1)
                 {
-                    _partitions[0].AddOrUpdate(values, options);
+                    _partitions[0].AddOrUpdate(datablock, options);
                     return;
                 }
 
                 // Determine the partition each item should go to
                 int[] partitionIds;
                 TargetPartitionInfo[] partitionInfo;
-                Type idColumnArrayType = values.GetTypeForColumn(idColumnIndex);
+                Type idColumnArrayType = datablock.GetTypeForColumn(idColumnIndex);
                 if (_splitter == null || _splitter.Item2 == null || _splitter.Item1 != idColumnArrayType)
                 {
                     IComputePartition splitter = NativeContainer.CreateTypedInstance<IComputePartition>(typeof(ComputePartitionHelper<>), idColumnArrayType);
                     _splitter = Tuple.Create(idColumnArrayType, splitter);
                 }
-                _splitter.Item2.ComputePartition(this, values, idColumnIndex, out partitionIds, out partitionInfo);
+                _splitter.Item2.ComputePartition(this, datablock, idColumnIndex, out partitionIds, out partitionInfo);
 
                 // Sort/group the incoming items by paritition and then by index to ensure they 
                 // are processed in the order they were presented in the input ReadOnlyDataBlock
-                int[] sortOrder = new int[values.RowCount];
-                for (int i = 0; i < values.RowCount; ++i)
+                int[] sortOrder = new int[datablock.RowCount];
+                for (int i = 0; i < datablock.RowCount; ++i)
                 {
                     int p = partitionIds[i];
                     int startIndex = partitionInfo[p].StartIndex + partitionInfo[p].Count;
@@ -483,7 +483,7 @@ namespace Arriba.Model
                         {
                             int startIndex = partitionInfo[p].StartIndex;
                             int length = partitionInfo[p].Count;
-                            DataBlock.ReadOnlyDataBlock partitionValues = values.ProjectChain(sortOrder, startIndex, length);
+                            DataBlock.ReadOnlyDataBlock partitionValues = datablock.ProjectChain(sortOrder, startIndex, length);
                             _partitions[p].AddOrUpdate(partitionValues, options);
                         }
                     };
