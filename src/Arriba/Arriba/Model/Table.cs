@@ -470,10 +470,10 @@ namespace Arriba.Model
                 int[] sortOrder = new int[datablock.RowCount];
                 for (int i = 0; i < datablock.RowCount; ++i)
                 {
-                    int p = partitionIds[i];
-                    int startIndex = partitionInfo[p].StartIndex + partitionInfo[p].Count;
-                    sortOrder[startIndex] = i;
-                    partitionInfo[p].Count++;
+                    var p = partitionIds[i];
+                    var sortIndex = partitionInfo[p].NextIndex;
+                    sortOrder[sortIndex] = i;
+                    partitionInfo[p].IncrementIndex();
                 }
 
                 Action<Tuple<int, int>, ParallelLoopState> forBody =
@@ -522,6 +522,19 @@ namespace Arriba.Model
         {
             public int StartIndex;
             public int Count;
+
+            public int NextIndex
+            {
+                get
+                {
+                    return StartIndex + Count;
+                }
+            }
+
+            public void IncrementIndex()
+            {
+                Count++;
+            }
         }
         #endregion
 
