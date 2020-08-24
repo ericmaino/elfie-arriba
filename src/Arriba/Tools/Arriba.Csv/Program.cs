@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Arriba.Configuration;
 using Arriba.Extensions;
 using Arriba.Model;
@@ -19,7 +20,7 @@ using Microsoft.CodeAnalysis.Elfie.Serialization;
 
 namespace Arriba.Csv
 {
-    internal class Program
+    internal class ArribaCsv
     {
         public const int QueryResultLimit = 40;
         public const int BatchSize = 250;
@@ -52,7 +53,15 @@ namespace Arriba.Csv
             Decorate = 2
         }
 
-        private static int Main(string[] args)
+        private static async Task<int> Main(string[] args)
+        {
+            return await ArribaProgram.Run<ArribaCsv>(() =>
+            {
+                return Task.FromResult(RunArribaCSV(args));
+            });
+        }
+
+        private static int RunArribaCSV(string[] args)
         {
             try
             {
