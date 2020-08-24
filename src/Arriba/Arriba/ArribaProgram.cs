@@ -8,19 +8,27 @@ namespace Arriba
     {
         public static async Task Run<T>(Func<Task> program)
         {
-            await program();
+            await ArribaRun<T>(program);
         }
 
         public static async Task<int> Run<T>(Func<Task<int>> program)
         {
             var x = new ReturnCode();
 
-            await Run<T>(async () =>
+            await ArribaRun<T>(async () =>
             {
                 x.Value = await program();
             });
 
             return x.Value;
+        }
+
+        private static async Task ArribaRun<T>(Func<Task> program)
+        {
+            using (ArribaLogs.EnableConsoleOutput())
+            {
+                await program();
+            }
         }
 
         private class ReturnCode
