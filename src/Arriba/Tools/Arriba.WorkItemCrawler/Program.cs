@@ -15,9 +15,17 @@ using Arriba.Model.Column;
 
 namespace Arriba
 {
-    internal class Program
+    internal class WorkItemCrawler
     {
         private static async Task<int> Main(string[] args)
+        {
+            return await ArribaProgram.Run<WorkItemCrawler>(async () =>
+            {
+                return await RunCrawler(args);
+            });
+        }
+
+        private static async Task<int> RunCrawler(string[] args)
         {
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
 
@@ -52,9 +60,9 @@ namespace Arriba
                     }
 
                     var config = configLoader.Bind<CrawlerConfiguration>("Arriba");
-                    
+
                     config.AppInsights.UseAppInsightsTraceListener();
-                    
+
                     // Build the item consumer
                     IItemConsumer consumer = ItemConsumerUtilities.Build(config);
 
