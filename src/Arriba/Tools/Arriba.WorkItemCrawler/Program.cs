@@ -27,8 +27,6 @@ namespace Arriba
 
         private static async Task<int> RunCrawler(string[] args)
         {
-            Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
-
             if (args.Length < 2)
             {
                 Usage();
