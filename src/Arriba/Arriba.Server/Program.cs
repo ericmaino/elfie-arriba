@@ -20,8 +20,6 @@ namespace Arriba.Server
         {
             await ArribaProgram.Run<ArribaServer>(() =>
             {
-                ArribaLogs.WriteLine("Arriba Local Server\r\n");
-
                 var configLoader = new ArribaConfigurationLoader(args);
 
                 // Write trace messages to console if /trace is specified 
@@ -37,7 +35,6 @@ namespace Arriba.Server
 
                 CreateHostBuilder(args).Build().Run();
 
-                ArribaLogs.WriteLine("Exiting.");
                 Environment.Exit(0);
                 return Task.CompletedTask;
             });

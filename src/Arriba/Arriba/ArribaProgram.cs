@@ -27,7 +27,15 @@ namespace Arriba
         {
             using (ArribaLogs.EnableConsoleOutput())
             {
-                await program();
+                try
+                {
+                    ArribaEventSource.Log.ServiceStart<T>();
+                    await program();
+                }
+                finally
+                {
+                    ArribaEventSource.Log.ServiceComplete<T>();
+                }
             }
         }
 
