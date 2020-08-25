@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Monitoring;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -19,7 +20,7 @@ namespace Arriba.Server
         {
             await ArribaProgram.Run<ArribaServer>(() =>
             {
-                Console.WriteLine("Arriba Local Server\r\n");
+                ArribaLogs.WriteLine("Arriba Local Server\r\n");
 
                 var configLoader = new ArribaConfigurationLoader(args);
 
@@ -36,7 +37,7 @@ namespace Arriba.Server
 
                 CreateHostBuilder(args).Build().Run();
 
-                Console.WriteLine("Exiting.");
+                ArribaLogs.WriteLine("Exiting.");
                 Environment.Exit(0);
                 return Task.CompletedTask;
             });

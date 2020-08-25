@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using Arriba.Diagnostics.Tracing;
 
 namespace Arriba.Diagnostics
 {
@@ -44,7 +45,7 @@ namespace Arriba.Diagnostics
             }
             catch (IOException)
             {
-                Console.WriteLine("ERROR: DailyLogTraceListener unable to log to '{0}'. Message: \r\n{1}", this.LogFilePath, message);
+                ArribaLogs.WriteLine("ERROR: DailyLogTraceListener unable to log to '{0}'. Message: \r\n{1}", this.LogFilePath, message);
             }
         }
 
@@ -56,7 +57,7 @@ namespace Arriba.Diagnostics
             }
             catch (IOException)
             {
-                Console.WriteLine("ERROR: DailyLogTraceListener unable to log to '{0}'. Message: \r\n{1}", this.LogFilePath, message);
+                ArribaLogs.WriteLine("ERROR: DailyLogTraceListener unable to log to '{0}'. Message: \r\n{1}", this.LogFilePath, message);
             }
         }
     }
