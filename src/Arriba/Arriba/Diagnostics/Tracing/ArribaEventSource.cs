@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.Tracing;
+﻿using System;
+using System.Diagnostics.Tracing;
 
 namespace Arriba.Diagnostics.Tracing
 {
@@ -28,6 +29,12 @@ namespace Arriba.Diagnostics.Tracing
             ServiceExit(typeof(T).Name);
         }
 
+        [NonEvent]
+        public void TrackFatalException(Exception ex)
+        {
+            FatalException(ex);
+        }
+
         [Event(1, Level = EventLevel.Informational, Message = "Starting service {0}")]
         private void ServiceStart(string serviceName)
         {
@@ -38,6 +45,12 @@ namespace Arriba.Diagnostics.Tracing
         private void ServiceExit(string serviceName)
         {
             WriteEvent(2, serviceName);
+        }
+
+        [Event(3, Level = EventLevel.Critical)]
+        private void FatalException(Exception exception)
+        {
+            WriteEvent(3, exception.ToString());
         }
     }
 }
