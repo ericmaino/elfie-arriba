@@ -82,18 +82,9 @@ namespace Arriba
 
                     return 0;
                 }
-                catch (AggregateException ex)
-                {
-                    foreach (Exception inner in ex.InnerExceptions)
-                    {
-                        Trace.TraceError(string.Format("ERROR: {0}\r\n{1}", Environment.CommandLine, inner));
-                    }
-
-                    return -2;
-                }
                 catch (Exception ex)
                 {
-                    Trace.TraceError(string.Format("ERROR: {0}\r\n{1}", Environment.CommandLine, ex));
+                    ArribaEventSource.Log.TrackFatalException(ex);
                     return -2;
                 }
             }

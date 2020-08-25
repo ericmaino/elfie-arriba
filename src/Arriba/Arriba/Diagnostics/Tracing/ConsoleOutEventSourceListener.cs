@@ -32,7 +32,18 @@ namespace Arriba.Diagnostics.Tracing
             output.Append(" - ");
             output.Append(e.Level);
 
+            if (FirstPayloadIsSerializedException(e))
+            {
+                output.AppendLine();
+                output.Append(e.Payload.First());
+            }
+            
             return output.ToString();
+        }
+
+        private bool FirstPayloadIsSerializedException(EventWrittenEventArgs e)
+        {
+            return string.Equals(e.PayloadNames.FirstOrDefault(), "Exception", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -32,6 +32,10 @@ namespace Arriba
                     ArribaEventSource.Log.ServiceStart<T>();
                     await program();
                 }
+                catch (Exception ex)
+                {
+                    ArribaEventSource.Log.TrackFatalException(ex);
+                }
                 finally
                 {
                     ArribaEventSource.Log.ServiceComplete<T>();
