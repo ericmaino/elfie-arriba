@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.Model;
 using Arriba.Model.Column;
@@ -117,8 +118,8 @@ namespace Arriba.Csv
             }
             catch (ArribaConfigurationLoaderException ex)
             {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(Usage);
+                ArribaLogs.WriteLine(ex.Message);
+                ArribaLogs.WriteLine(Usage);
                 return -1;
             }
             catch (Exception ex) when (!Debugger.IsAttached)
@@ -127,12 +128,12 @@ namespace Arriba.Csv
                 {
                     foreach (Exception inner in ((AggregateException)ex).InnerExceptions)
                     {
-                        Console.WriteLine(inner.Message);
+                        ArribaLogs.WriteLine(inner.Message);
                     }
                 }
                 else
                 {
-                    Console.WriteLine(ex.Message);
+                    ArribaLogs.WriteLine(ex.Message);
                 }
 
                 return -2;
@@ -177,7 +178,7 @@ namespace Arriba.Csv
         private static void Build(AddMode mode, string tableName, string csvFilePath, int maximumCount, string columns, string settingsJsonPath = null)
         {
             Stopwatch w = Stopwatch.StartNew();
-            Console.WriteLine("{0} Arriba table '{1}' from '{2}'...", mode, tableName, csvFilePath);
+            ArribaLogs.WriteLine("{0} Arriba table '{1}' from '{2}'...", mode, tableName, csvFilePath);
 
             IList<string> columnNames = null;
             if (!String.IsNullOrEmpty(columns)) columnNames = SplitAndTrim(columns);
@@ -217,13 +218,13 @@ namespace Arriba.Csv
                     Console.Write(".");
                 }
 
-                Console.WriteLine();
-                Console.WriteLine("Imported {0:n0} rows; table has {1:n0} rows. Saving...", rowsImported, table.Count);
+                ArribaLogs.WriteLine();
+                ArribaLogs.WriteLine("Imported {0:n0} rows; table has {1:n0} rows. Saving...", rowsImported, table.Count);
             }
 
             table.Save();
             w.Stop();
-            Console.WriteLine("Done in {0}.", w.Elapsed.ToFriendlyString());
+            ArribaLogs.WriteLine("Done in {0}.", w.Elapsed.ToFriendlyString());
         }
 
         private static IEnumerable<DataBlock> ReadAsDataBlockBatch(ITabularReader reader, IList<string> columnNames)
@@ -277,13 +278,13 @@ namespace Arriba.Csv
 
         private static void Query(string tableName, string columnsToSelect, string orderByColumn, int countToShow)
         {
-            Console.WriteLine("Loading '{0}'...", tableName);
+            ArribaLogs.WriteLine("Loading '{0}'...", tableName);
 
             Table table = new Table();
             Stopwatch w = Stopwatch.StartNew();
             table.Load(tableName);
             w.Stop();
-            Console.WriteLine("Done. Loaded '{0}' ({1:n0} rows) in {2}.", tableName, table.Count, w.Elapsed.ToFriendlyString());
+            ArribaLogs.WriteLine("Done. Loaded '{0}' ({1:n0} rows) in {2}.", tableName, table.Count, w.Elapsed.ToFriendlyString());
 
             Console.Write(" > ");
             string query = Console.ReadLine();
@@ -325,7 +326,7 @@ namespace Arriba.Csv
                 output.AppendLine();
             }
 
-            Console.WriteLine(output.ToString());
+            ArribaLogs.WriteLine(output.ToString());
         }
 
         private static CombinedSettings LoadSettings(string settingsJsonPath)
@@ -336,7 +337,7 @@ namespace Arriba.Csv
 
         private static void GetSettings(string tableName, string settingsJsonPath)
         {
-            Console.WriteLine("Reading settings from '{0}' and writing to '{1}'...", tableName, settingsJsonPath);
+            ArribaLogs.WriteLine("Reading settings from '{0}' and writing to '{1}'...", tableName, settingsJsonPath);
 
             CombinedSettings settings = new CombinedSettings();
 
@@ -353,7 +354,7 @@ namespace Arriba.Csv
 
         private static void SetSettings(string tableName, string settingsJsonPath)
         {
-            Console.WriteLine("Applying settings from '{0}' to '{1}'...", settingsJsonPath, tableName);
+            ArribaLogs.WriteLine("Applying settings from '{0}' to '{1}'...", settingsJsonPath, tableName);
 
             // Read settings file
             CombinedSettings settings = LoadSettings(settingsJsonPath);
@@ -371,7 +372,7 @@ namespace Arriba.Csv
 
         private static void SetTableCreators(string creators)
         {
-            Console.WriteLine("Setting table creators...");
+            ArribaLogs.WriteLine("Setting table creators...");
 
             SecurityPermissions createPermissions = new SecurityPermissions();
             foreach (string creator in creators.Split(';'))
@@ -380,7 +381,7 @@ namespace Arriba.Csv
                 IdentityScope scope = parts[0].Equals("u", StringComparison.OrdinalIgnoreCase) ? IdentityScope.User : IdentityScope.Group;
                 createPermissions.Grant(new SecurityIdentity(scope, parts[1]), PermissionScope.Owner);
 
-                Console.WriteLine($" - {scope} {parts[1]}");
+                ArribaLogs.WriteLine($" - {scope} {parts[1]}");
             }
 
             // Create table, if required
