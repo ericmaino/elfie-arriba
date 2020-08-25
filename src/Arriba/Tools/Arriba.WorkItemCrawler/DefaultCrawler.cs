@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.ItemConsumers;
 using Arriba.ItemProviders;
@@ -161,7 +162,7 @@ namespace Arriba
                             // Save table if enough time has elapsed
                             if (sinceLastWrite.Elapsed.TotalMinutes > WriteAfterMinutes)
                             {
-                                Console.WriteLine();
+                                ArribaLogs.WriteLine();
 
                                 try
                                 {
@@ -185,7 +186,7 @@ namespace Arriba
                     }
 
                     end = itemsToGet.Max(x => x.ChangedDate).AddSeconds(1);
-                    Console.WriteLine();
+                    ArribaLogs.WriteLine();
                 }
             }
             finally
@@ -209,7 +210,7 @@ namespace Arriba
                     consumer = null;
                 }
 
-                Console.WriteLine();
+                ArribaLogs.WriteLine();
 
                 // Old tracing logic
                 Trace.WriteLine(string.Format("Crawler Done. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));

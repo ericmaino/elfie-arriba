@@ -15,6 +15,7 @@ using Arriba.Serialization;
 using Arriba.Structures;
 using Arriba.Model.Column;
 using System.Linq;
+using Arriba.Diagnostics.Tracing;
 
 namespace Arriba.ConsoleTest
 {
@@ -81,7 +82,7 @@ namespace Arriba.ConsoleTest
             };
 
             init();
-            Console.WriteLine("start profiling");
+            ArribaLogs.WriteLine("start profiling");
             Console.ReadLine();
             Stopwatch timer = Stopwatch.StartNew();
             table.AddOrUpdate(items, new AddOrUpdateOptions());
@@ -190,7 +191,7 @@ namespace Arriba.ConsoleTest
                 query.Count = (ushort)pageSize;
                 if (highlight) query.Highlighter = new Highlighter("[", "]");
 
-                Console.WriteLine("\r\n{0}\r\n", query);
+                ArribaLogs.WriteLine("\r\n{0}\r\n", query);
 
                 Trace.Write(String.Format("Querying Bugs ({0})...\r\n", pageSize));
 
@@ -200,8 +201,8 @@ namespace Arriba.ConsoleTest
                 }
             }
 
-            Console.WriteLine("Found {0:n0} items in {1}", result.Total, result.Runtime.ToFriendlyString());
-            Console.WriteLine();
+            ArribaLogs.WriteLine("Found {0:n0} items in {1}", result.Total, result.Runtime.ToFriendlyString());
+            ArribaLogs.WriteLine();
             //ShowResult(result.Values);
         }
 
@@ -224,7 +225,7 @@ namespace Arriba.ConsoleTest
             //));
 
             AggregationResult result = null;
-            Console.WriteLine("\r\n{0}\r\n", query);
+            ArribaLogs.WriteLine("\r\n{0}\r\n", query);
 
             Trace.Write("Aggregating Bugs...");
 
@@ -233,7 +234,7 @@ namespace Arriba.ConsoleTest
                 result = table.Query(query);
             }
 
-            Console.WriteLine();
+            ArribaLogs.WriteLine();
             ShowResult(result.Values);
         }
 
@@ -267,7 +268,7 @@ namespace Arriba.ConsoleTest
 
             Trace.Write(String.Format("\r\n{0}\r\n", query));
             Trace.Write(String.Format("Found {0:n0} items in {1}\r\n", result.Total, result.Runtime.ToFriendlyString()));
-            Console.WriteLine();
+            ArribaLogs.WriteLine();
             ShowResult(result.Values);
         }
 
