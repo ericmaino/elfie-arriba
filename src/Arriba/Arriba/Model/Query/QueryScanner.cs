@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Arriba.Diagnostics.Tracing;
 
 namespace Arriba.Model.Query
 {
@@ -257,7 +258,7 @@ namespace Arriba.Model.Query
         /// <param name="warning">Warning message indicating the problem</param>
         public void Warn(string caller, string warning)
         {
-            Console.WriteLine("Parse Warning (Index {0}, Parsing {1}): {2}", CurrentIndex, caller, warning);
+            ArribaLogs.WriteLine("Parse Warning (Index {0}, Parsing {1}): {2}", CurrentIndex, caller, warning);
         }
 
         /// <summary>

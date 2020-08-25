@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Arriba.Composition;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.ItemConsumers;
 using Arriba.ItemProviders;
 using Arriba.Model.Column;
@@ -47,7 +48,7 @@ namespace Arriba
                     // Ensure we got the file lock (no duplicate crawlers
                     if (locker == null)
                     {
-                        Console.WriteLine("Another instance running. Stopping.");
+                        ArribaLogs.WriteLine("Another instance running. Stopping.");
                         return -2;
                     }
 

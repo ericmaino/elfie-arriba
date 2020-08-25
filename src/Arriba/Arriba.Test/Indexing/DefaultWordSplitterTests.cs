@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.Indexing;
 using Arriba.Structures;
@@ -129,7 +129,7 @@ namespace Arriba.Test.Indexing
 
 
             w.Stop();
-            System.Console.WriteLine("{0:n0} words found on {1:n0} lines in {2:n0}ms.", totalStrings, totalLines, w.ElapsedMilliseconds);
+            ArribaLogs.WriteLine("{0:n0} words found on {1:n0} lines in {2:n0}ms.", totalStrings, totalLines, w.ElapsedMilliseconds);
         }
 
 #if PERFORMANCE
@@ -172,7 +172,7 @@ namespace Arriba.Test.Indexing
 
 
             w.Stop();
-            System.Console.WriteLine("{0:n0} words found on {1:n0} lines in {2:n0}ms.", totalStrings, totalLines, w.ElapsedMilliseconds);
+            ArribaLogs.WriteLine("{0:n0} words found on {1:n0} lines in {2:n0}ms.", totalStrings, totalLines, w.ElapsedMilliseconds);
         }
 
         private static IEnumerable<byte[]> ReadBlocks(string path)

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Arriba.Client;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Query;
@@ -111,7 +112,7 @@ Usage:
                     ex = ex.InnerException;
                 }
 
-                Console.WriteLine(ex.Message);
+                ArribaLogs.WriteLine(ex.Message);
                 return -2;
             }
 
@@ -330,19 +331,19 @@ Usage:
 
                 // Select ID, Name WHERE Age = 32
                 SelectResult selectResult = await table.Select(new SelectQuery(new string[] { "ID" }, "Age = 32"));
-                Console.WriteLine("Found {0:n0} 32 year olds (expected 2)", selectResult.Total);
+                ArribaLogs.WriteLine("Found {0:n0} 32 year olds (expected 2)", selectResult.Total);
 
                 // Aggregate COUNT(*) WHERE {ALL} BY Age < 30, Age >= 30
                 AggregationQuery aggregateQuery = new AggregationQuery("Count", new string[] { "ID" }, "");
                 aggregateQuery.Dimensions.Add(new AggregationDimension("Age", "Age < 30", "Age >= 30"));
                 AggregationResult aggregateResult = await table.Aggregate(aggregateQuery);
-                Console.WriteLine("Found {0:n0} under 30 year olds (expected 1)", aggregateResult.Values[0, 1]);
-                Console.WriteLine("Found {0:n0} over 30 year olds (expected 3)", aggregateResult.Values[1, 1]);
-                Console.WriteLine("Found {0:n0} altogether (expected 4)", aggregateResult.Values[2, 1]);
+                ArribaLogs.WriteLine("Found {0:n0} under 30 year olds (expected 1)", aggregateResult.Values[0, 1]);
+                ArribaLogs.WriteLine("Found {0:n0} over 30 year olds (expected 3)", aggregateResult.Values[1, 1]);
+                ArribaLogs.WriteLine("Found {0:n0} altogether (expected 4)", aggregateResult.Values[2, 1]);
 
                 // Delete WHERE Age < 30
                 int countDeleted = await table.Delete(SelectQuery.ParseWhere("Age < 30"));
-                Console.WriteLine("Deleted {0:n0} users (expected 1)", countDeleted);
+                ArribaLogs.WriteLine("Deleted {0:n0} users (expected 1)", countDeleted);
             }
         }
     }
