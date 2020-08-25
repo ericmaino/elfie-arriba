@@ -38,7 +38,6 @@ namespace Arriba
             var configLoader = new ArribaConfigurationLoader(args);
             var configurationName = configLoader.GetStringValue("configName");
             var mode = configLoader.GetStringValue("mode", "-i").ToLowerInvariant();
-            Trace.WriteLine("Launching Crawler");
             Trace.WriteLine($"Using configName: {configurationName} mode:{mode}");
 
             using (FileLock locker = FileLock.TryGet(string.Format("Arriba.TfsWorkItemCrawler.{0}.lock", configurationName)))
