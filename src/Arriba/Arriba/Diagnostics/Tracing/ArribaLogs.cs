@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
 
@@ -20,8 +20,11 @@ namespace Arriba.Diagnostics.Tracing
         {
             var consolewriter = new TextWriterTraceListener(Console.Out);
             Trace.Listeners.Add(consolewriter);
-            return consolewriter;
-        }
 
+            var consoleEventListener = new ConsoleOutEventSourceListener();
+            consoleEventListener.EnableEvents(ArribaEventSource.Log, EventLevel.Verbose);
+
+            return consoleEventListener;
+        }
     }
 }
