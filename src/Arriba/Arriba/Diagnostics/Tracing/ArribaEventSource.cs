@@ -1,11 +1,64 @@
 ﻿using System;
 using System.Diagnostics.Tracing;
+using System.Net;
+using System.Threading.Tasks;
+using Arriba.Model;
+using Arriba.Model.Column;
 
 namespace Arriba.Diagnostics.Tracing
 {
-    public sealed class ArribaEventSource : EventSource
+    public interface ISymmetricEvent : IDisposable
     {
-        public static ArribaEventSource Log { get; }
+    }
+
+    public interface IConsistencyEvent : IDisposable
+    {
+        void Failure(ExecutionDetails details);
+    }
+
+    public interface IServiceIdentity
+    {
+        string FriendlyServiceName { get; }
+    }
+
+    public interface IItemIdentifier
+    {
+        string FriendlyName { get; }
+    }
+
+    public interface IEventSource
+    {
+        EventListener EnableEvents(EventListener listener, EventLevel level);
+    }
+
+    public interface IArribaEvents : IEventSource
+    {
+        void ServiceStart<T>();
+        void ServiceComplete<T>();
+        void TrackFatalException(Exception ex, IServiceIdentity id);
+        ISymmetricEvent TrackExecutionTime<T>(T payload);
+        void UsingCachePath(string value);
+        void TableMiss(string tableName);
+        void TableHit(string tableName);
+        ISymmetricEvent TrackSave(IServiceIdentity service);
+        ISymmetricEvent LoadTable(string tableName);
+        IConsistencyEvent VerifyingTableConsistencyOnSave(IServiceIdentity table);
+        IConsistencyEvent VerifyingTableConsistencyOnRead(IServiceIdentity table);
+        void ExceptionOnIndexing(ColumnDetails column, IItemIdentifier item, Exception ex);
+        void SkipIndexingField(ColumnDetails c, IItemIdentifier item);
+        void ProcessingComplete<T>();
+        void LoadFile<T>(string filePath);
+        void LastItemReadOccuredAt(DateTimeOffset previousLastChangedItem);
+        void PerformIncrementalRead(DateTimeOffset start, DateTimeOffset end);
+        void DownloadItems(int count);
+        void TrackExceptionOnRead(Exception e, IServiceIdentity id);
+        void TrakExceptionOnWrite(Exception e, IServiceIdentity id);
+        void TrackExceptionOnSave(Exception e, IServiceIdentity id);
+    }
+
+    public sealed class ArribaEventSource : EventSource, IArribaEvents
+    {
+        public static IArribaEvents Log { get; }
 
         static ArribaEventSource()
         {
@@ -35,6 +88,18 @@ namespace Arriba.Diagnostics.Tracing
             FatalException(ex);
         }
 
+        [NonEvent]
+        public EventListener EnableEvents(EventListener listener, EventLevel level)
+        {
+            listener.EnableEvents(this, level);
+            return listener;
+        }
+
+        public ITimedEvent TrackExecutionTime<T>(T payload)
+        {
+            return null;
+        }
+
         [Event(1, Level = EventLevel.Informational, Message = "Starting service {0}")]
         private void ServiceStart(string serviceName)
         {
@@ -52,5 +117,7 @@ namespace Arriba.Diagnostics.Tracing
         {
             WriteEvent(3, exception.ToString());
         }
+
+       
     }
 }

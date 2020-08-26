@@ -3,14 +3,14 @@
 
 using System;
 using System.Collections.Generic;
-
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
 using Arriba.Structures;
 
 namespace Arriba.ItemConsumers
 {
-    public interface IItemConsumer : IDisposable
+    public interface IItemConsumer : IDisposable, IServiceIdentity
     {
         /// <summary>
         ///  Create a table with the given columns and permisssions.

@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using Arriba.Diagnostics.Tracing;
 using Arriba.ItemConsumers;
 using Arriba.ItemProviders;
 using Arriba.Structures;
@@ -74,9 +75,10 @@ namespace Arriba
 
         private void Save(IItemConsumer consumer, DateTimeOffset lastCutoffWritten)
         {
-            Trace.WriteLine("Saving...");
-            consumer.Save();
-            Trace.WriteLine("Save Complete.");
+            using (ArribaEventSource.Log.TrackSave(consumer))
+            {
+                consumer.Save();
+            }
 
             // Record the new last cutoff written
             ItemProviderUtilities.SaveLastCutoff(Configuration.ArribaTable, ConfigurationName + ".CSV", lastCutoffWritten);
