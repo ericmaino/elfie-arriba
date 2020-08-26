@@ -95,11 +95,6 @@ namespace Arriba.Diagnostics.Tracing
             return listener;
         }
 
-        public ITimedEvent TrackExecutionTime<T>(T payload)
-        {
-            return null;
-        }
-
         [Event(1, Level = EventLevel.Informational, Message = "Starting service {0}")]
         private void ServiceStart(string serviceName)
         {
@@ -118,6 +113,99 @@ namespace Arriba.Diagnostics.Tracing
             WriteEvent(3, exception.ToString());
         }
 
-       
+        public void TrackFatalException(Exception ex, IServiceIdentity id)
+        {
+            throw new NotImplementedException();
+        }
+
+        ISymmetricEvent IArribaEvents.TrackExecutionTime<T>(T payload)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UsingCachePath(string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TableMiss(string tableName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TableHit(string tableName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ISymmetricEvent TrackSave(IServiceIdentity service)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ISymmetricEvent LoadTable(string tableName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IConsistencyEvent VerifyingTableConsistencyOnSave(IServiceIdentity table)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IConsistencyEvent VerifyingTableConsistencyOnRead(IServiceIdentity table)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ExceptionOnIndexing(ColumnDetails column, IItemIdentifier item, Exception ex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SkipIndexingField(ColumnDetails c, IItemIdentifier item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ProcessingComplete<T>()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void LoadFile<T>(string filePath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void LastItemReadOccuredAt(DateTimeOffset previousLastChangedItem)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void PerformIncrementalRead(DateTimeOffset start, DateTimeOffset end)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void DownloadItems(int count)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TrackExceptionOnRead(Exception e, IServiceIdentity id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TrakExceptionOnWrite(Exception e, IServiceIdentity id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TrackExceptionOnSave(Exception e, IServiceIdentity id)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

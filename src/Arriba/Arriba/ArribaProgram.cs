@@ -34,7 +34,7 @@ namespace Arriba
                 }
                 catch (Exception ex)
                 {
-                    ArribaEventSource.Log.TrackFatalException(ex);
+                    ArribaEventSource.Log.TrackFatalException(ex, null);
                 }
                 finally
                 {

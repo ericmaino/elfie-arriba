@@ -34,6 +34,8 @@ namespace Arriba
 
         private IArribaEvents Log { get; }
 
+        public string FriendlyServiceName => throw new NotImplementedException();
+
         public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild)
         {
             ConfigurationName = configurationName;

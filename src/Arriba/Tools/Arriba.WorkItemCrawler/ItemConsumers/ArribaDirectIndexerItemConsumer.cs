@@ -30,6 +30,8 @@ namespace Arriba.ItemConsumers
 
         private Table Table { get; set; }
 
+        public string FriendlyServiceName => throw new NotImplementedException();
+
         public ArribaDirectIndexerItemConsumer(CrawlerConfiguration config)
         {
             this.Configuration = config;

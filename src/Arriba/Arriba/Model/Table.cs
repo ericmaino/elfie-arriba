@@ -878,6 +878,8 @@ namespace Arriba.Model
             }
         }
 
+        public string FriendlyServiceName => throw new NotImplementedException();
+
         public void Save()
         {
             _locker.EnterReadLock();

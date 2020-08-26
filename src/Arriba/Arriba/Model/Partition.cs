@@ -93,6 +93,8 @@ namespace Arriba.Model
             }
         }
 
+        public string FriendlyServiceName => throw new NotImplementedException();
+
         /// <summary>
         ///  Add a new column with the given details. Columns must be added before values can be set on them.
         /// </summary>
