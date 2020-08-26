@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
@@ -44,8 +45,10 @@ namespace Arriba.ItemConsumers
             // Try to load the table if it already exists
             if (BinarySerializable.EnumerateUnder(Path.Combine("Tables", this.Configuration.ArribaTable)).Count() > 0)
             {
-                Trace.WriteLine(string.Format("Loading Arriba Table '{0}'...", this.Configuration.ArribaTable));
-                this.Table.Load(this.Configuration.ArribaTable);
+                using (ArribaEventSource.Log.LoadTable(this.Configuration.ArribaTable))
+                {
+                    this.Table.Load(this.Configuration.ArribaTable);
+                }
             }
 
             // Columns are added dynamically by Append
@@ -58,15 +61,16 @@ namespace Arriba.ItemConsumers
             // Debug Only: Verify consistency just after load
             if (this.DiagnosticsEnabled)
             {
-                Trace.WriteLine("Verifying Arriba Table consistency [on load]...");
-
-                ExecutionDetails d = new ExecutionDetails();
-                this.Table.VerifyConsistency(this.DiagnosticsLevel, d);
-
-                if (!d.Succeeded)
+                using (var log = ArribaEventSource.Log.VerifyingTableConsistencyOnRead(this.Table))
                 {
-                    Debugger.Break();
-                    Trace.TraceError(String.Format("Consistency Errors Detected: {0}", String.Join("\r\n", d.Errors)));
+                    ExecutionDetails d = new ExecutionDetails();
+                    this.Table.VerifyConsistency(this.DiagnosticsLevel, d);
+
+                    if (!d.Succeeded)
+                    {
+                        Debugger.Break();
+                        log.Failure(d);
+                    }
                 }
             }
         }
@@ -105,15 +109,16 @@ namespace Arriba.ItemConsumers
             // Debug Only: Verify consistency just before save
             if (this.DiagnosticsEnabled)
             {
-                Trace.WriteLine("Verifying Arriba Table consistency [on save]...");
-
-                ExecutionDetails d = new ExecutionDetails();
-                this.Table.VerifyConsistency(this.DiagnosticsLevel, d);
-
-                if (!d.Succeeded)
+                using (var log = ArribaEventSource.Log.VerifyingTableConsistencyOnSave(this.Table))
                 {
-                    Debugger.Break();
-                    Trace.TraceError(String.Format("Consistency Errors Detected: {0}", String.Join("\r\n", d.Errors)));
+                    ExecutionDetails d = new ExecutionDetails();
+                    this.Table.VerifyConsistency(this.DiagnosticsLevel, d);
+
+                    if (!d.Succeeded)
+                    {
+                        Debugger.Break();
+                        log.Failure(d);
+                    }
                 }
             }
 

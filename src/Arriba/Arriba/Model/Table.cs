@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.Model.Column;
 using Arriba.Model.Correctors;
@@ -786,12 +786,12 @@ namespace Arriba.Model
             {
                 if (partitionFile.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
                 {
-                    Trace.Write($"Found Table {tableName}");
+                    ArribaEventSource.Log.TableHit(tableName);
                     return true;
                 }
             }
 
-            Trace.Write($"Cannot Find Table {tableName}");
+            ArribaEventSource.Log.TableMiss(tableName);
             return false;
         }
 

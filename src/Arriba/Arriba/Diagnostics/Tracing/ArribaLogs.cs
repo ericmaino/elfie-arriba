@@ -21,10 +21,7 @@ namespace Arriba.Diagnostics.Tracing
             var consolewriter = new TextWriterTraceListener(Console.Out);
             Trace.Listeners.Add(consolewriter);
 
-            var consoleEventListener = new ConsoleOutEventSourceListener();
-            consoleEventListener.EnableEvents(ArribaEventSource.Log, EventLevel.Verbose);
-
-            return consoleEventListener;
+            return ArribaEventSource.Log.EnableEvents(new ConsoleOutEventSourceListener(), EventLevel.Verbose);
         }
     }
 }

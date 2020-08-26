@@ -177,54 +177,52 @@ namespace Arriba.Csv
 
         private static void Build(AddMode mode, string tableName, string csvFilePath, int maximumCount, string columns, string settingsJsonPath = null)
         {
-            Stopwatch w = Stopwatch.StartNew();
-            ArribaLogs.WriteLine("{0} Arriba table '{1}' from '{2}'...", mode, tableName, csvFilePath);
-
-            IList<string> columnNames = null;
-            if (!String.IsNullOrEmpty(columns)) columnNames = SplitAndTrim(columns);
-
-            // Build or load table
-            Table table;
-            if (mode == AddMode.Build)
+            using (ArribaEventSource.Log.TrackExecutionTime(new { Mode = mode, Table = tableName, FilePath = csvFilePath }))
             {
-                table = new Table(tableName, maximumCount);
-            }
-            else
-            {
-                table = new Table();
-                table.Load(tableName);
-            }
+                IList<string> columnNames = null;
+                if (!String.IsNullOrEmpty(columns)) columnNames = SplitAndTrim(columns);
 
-            // Configure table
-            if (!String.IsNullOrEmpty(settingsJsonPath))
-            {
-                SetSettings(table, LoadSettings(settingsJsonPath));
-            }
-
-            // Always add missing columns. Add rows only when not in 'decorate' mode
-            AddOrUpdateOptions options = new AddOrUpdateOptions();
-            options.AddMissingColumns = true;
-            options.Mode = (mode == AddMode.Decorate ? AddOrUpdateMode.UpdateAndIgnoreAdds : AddOrUpdateMode.AddOrUpdate);
-
-            using (ITabularReader reader = TabularFactory.BuildReader(csvFilePath))
-            {
-                long rowsImported = 0;
-                if (columnNames == null) columnNames = new List<string>(reader.Columns);
-
-                foreach (DataBlock block in ReadAsDataBlockBatch(reader, columnNames))
+                // Build or load table
+                Table table;
+                if (mode == AddMode.Build)
                 {
-                    table.AddOrUpdate(block, options);
-                    rowsImported += block.RowCount;
-                    Console.Write(".");
+                    table = new Table(tableName, maximumCount);
+                }
+                else
+                {
+                    table = new Table();
+                    table.Load(tableName);
                 }
 
-                ArribaLogs.WriteLine();
-                ArribaLogs.WriteLine("Imported {0:n0} rows; table has {1:n0} rows. Saving...", rowsImported, table.Count);
-            }
+                // Configure table
+                if (!String.IsNullOrEmpty(settingsJsonPath))
+                {
+                    SetSettings(table, LoadSettings(settingsJsonPath));
+                }
 
-            table.Save();
-            w.Stop();
-            ArribaLogs.WriteLine("Done in {0}.", w.Elapsed.ToFriendlyString());
+                // Always add missing columns. Add rows only when not in 'decorate' mode
+                AddOrUpdateOptions options = new AddOrUpdateOptions();
+                options.AddMissingColumns = true;
+                options.Mode = (mode == AddMode.Decorate ? AddOrUpdateMode.UpdateAndIgnoreAdds : AddOrUpdateMode.AddOrUpdate);
+
+                using (ITabularReader reader = TabularFactory.BuildReader(csvFilePath))
+                {
+                    long rowsImported = 0;
+                    if (columnNames == null) columnNames = new List<string>(reader.Columns);
+
+                    foreach (DataBlock block in ReadAsDataBlockBatch(reader, columnNames))
+                    {
+                        table.AddOrUpdate(block, options);
+                        rowsImported += block.RowCount;
+                        Console.Write(".");
+                    }
+
+                    ArribaLogs.WriteLine();
+                    ArribaLogs.WriteLine("Imported {0:n0} rows; table has {1:n0} rows. Saving...", rowsImported, table.Count);
+                }
+
+                table.Save();
+            }
         }
 
         private static IEnumerable<DataBlock> ReadAsDataBlockBatch(ITabularReader reader, IList<string> columnNames)
