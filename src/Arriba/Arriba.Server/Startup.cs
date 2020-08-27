@@ -18,7 +18,7 @@ namespace Arriba.Server
 {
     public class Startup
     {
-        private ArribaServerConfiguration serverConfig;
+        private IArribaServerConfiguration serverConfig;
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -47,7 +47,7 @@ namespace Arriba.Server
 
             services.AddOAuth(serverConfig);
             services.AddSingleton(GetArribaManagementService());
-            services.AddSingleton<IArribaServerConfiguration>((_) => serverConfig);
+            services.AddSingleton((_) => serverConfig);
             services.AddSingleton((_) => serverConfig.OAuthConfig);
             services.AddControllers();
         }
