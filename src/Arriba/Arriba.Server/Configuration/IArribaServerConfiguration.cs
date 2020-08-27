@@ -1,4 +1,5 @@
 ﻿using Arriba.Configuration;
+using Arriba.Telemetry;
 
 namespace Arriba.Configuration
 {
@@ -7,5 +8,7 @@ namespace Arriba.Configuration
         public bool EnabledAuthentication { get; }
         public IOAuthConfig OAuthConfig { get; }
         public string FrontendBaseUrl { get; }
+
+        IApplicationInsightsConfiguration AppInsights { get; }
     }
 }
