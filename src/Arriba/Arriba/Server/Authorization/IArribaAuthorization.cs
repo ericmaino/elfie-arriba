@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Security.Principal;
 using System.Text;
 
-namespace Arriba.Communication.Server.Authorization
+namespace Arriba.Server.Authorization
 {
     public interface IArribaAuthorization
     {

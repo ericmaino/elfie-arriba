@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Security.Principal;
-using Arriba.Communication.Server.Authorization;
+using Arriba.Server.Authorization;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Correctors;

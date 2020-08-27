@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 using Arriba.Communication;
 using Arriba.Communication.Application;
-using Arriba.Communication.Server.Authorization;
+using Arriba.Server.Authorization;
 using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.Model.Security;

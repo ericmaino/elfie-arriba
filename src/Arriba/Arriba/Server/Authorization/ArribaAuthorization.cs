@@ -6,7 +6,7 @@ using Arriba.Server.Authentication;
 using System;
 using System.Security.Principal;
 
-namespace Arriba.Communication.Server.Authorization
+namespace Arriba.Server.Authorization
 {
     public class ArribaAuthorization : IArribaAuthorization
     {
