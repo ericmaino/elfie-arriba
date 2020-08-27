@@ -1,5 +1,4 @@
-﻿using Arriba.Caching;
-using Arriba.Model;
+﻿using Arriba.Model;
 using Arriba.Model.Security;
 using Arriba.ParametersCheckers;
 using Arriba.Server.Authentication;
@@ -19,7 +18,7 @@ namespace Arriba.Server.Authorization
             _claimsAuth = claims;
         }
 
-        public bool HasTableAccess(string tableName, IPrincipal currentUser, PermissionScope scope)
+        private bool HasTableAccess(string tableName, IPrincipal currentUser, PermissionScope scope)
         {
             var security = _database.Security(tableName);
 
@@ -33,7 +32,7 @@ namespace Arriba.Server.Authorization
             return HasPermission(security, currentUser, scope);
         }
 
-        public bool HasPermission(SecurityPermissions security, IPrincipal currentUser, PermissionScope scope)
+        private bool HasPermission(SecurityPermissions security, IPrincipal currentUser, PermissionScope scope)
         {
             // No user identity? Forbidden! 
             if (currentUser == null || currentUser.Identity == null || !currentUser.Identity.IsAuthenticated)

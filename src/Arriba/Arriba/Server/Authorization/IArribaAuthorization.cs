@@ -12,10 +12,6 @@ namespace Arriba.Server.Authorization
 
         bool ValidateTableAccessForUser(string tableName, IPrincipal user, PermissionScope scope);
 
-        bool HasTableAccess(string tableName, IPrincipal currentUser, PermissionScope scope);
-
-        bool HasPermission(SecurityPermissions security, IPrincipal currentUser, PermissionScope scope);
-
         bool IsInIdentity(IPrincipal currentUser, SecurityIdentity targetUserOrGroup);
 
         bool ValidateCreateAccessForUser(IPrincipal user);

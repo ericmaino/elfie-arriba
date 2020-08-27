@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Security.Principal;
 using Arriba.Server.Authorization;
@@ -133,7 +133,7 @@ namespace Arriba.Communication.Server.Application
         {
             _database.ThrowIfTableNotFound(tableName);
 
-            if (!_arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Reader))
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
                 return null;
 
             var table = this._database[tableName];
@@ -146,8 +146,8 @@ namespace Arriba.Communication.Server.Application
             ti.PartitionCount = table.PartitionCount;
             ti.RowCount = table.Count;
             ti.LastWriteTimeUtc = table.LastWriteTimeUtc;
-            ti.CanWrite = _arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Writer);
-            ti.CanAdminister = _arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Owner);
+            ti.CanWrite = _arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Writer);
+            ti.CanAdminister = _arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Owner);
 
             IList<string> restrictedColumns = _database.GetRestrictedColumns(tableName, (si) => _arribaAuthorization.IsInIdentity(user, si));
             if (restrictedColumns == null)
@@ -177,7 +177,7 @@ namespace Arriba.Communication.Server.Application
             IDictionary<string, TableInformation> allBasics = new Dictionary<string, TableInformation>();
             foreach (string tableName in _database.TableNames)
             {
-                if (_arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Reader))
+                if (_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Reader))
                 {
                     allBasics[tableName] = GetTableInformationForUser(tableName, user);
                 }
@@ -267,7 +267,7 @@ namespace Arriba.Communication.Server.Application
         {
             _database.ThrowIfTableNotFound(tableName);
 
-            if (!_arribaAuthorization.HasTableAccess(tableName, user, PermissionScope.Writer))
+            if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Writer))
                 return false;
 
             _database.UnloadTable(tableName);

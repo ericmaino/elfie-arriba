@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -179,7 +179,7 @@ namespace Arriba.Server
 
         protected bool HasTableAccess(string tableName, IPrincipal currentUser, PermissionScope scope)
         {
-            return _arribaAuthorization.HasTableAccess(tableName, currentUser, scope);
+            return _arribaAuthorization.ValidateTableAccessForUser(tableName, currentUser, scope);
         }
 
 
