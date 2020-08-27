@@ -22,7 +22,6 @@ namespace Arriba.Server
     public abstract class ArribaApplication : RoutedApplication<IResponse>
     {
         protected static readonly ArribaResponse ContinueToNextHandlerResponse = null;
-        private ClaimsAuthenticationService _claimsAuth;
         private ComposedCorrector _correctors;
         private IArribaAuthorization _arribaAuthorization;
 
@@ -33,7 +32,6 @@ namespace Arriba.Server
 
             this.EventSource = EventPublisher.CreateEventSource(this.GetType().Name);
             this.Database = factory.GetDatabase();
-            _claimsAuth = claimsAuth;
 
             _arribaAuthorization = new ArribaAuthorization(this.Database, claimsAuth);
 
