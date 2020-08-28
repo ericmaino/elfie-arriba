@@ -1,5 +1,6 @@
 ﻿using Arriba.Caching;
 using Arriba.Communication.Server.Application;
+using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
@@ -40,8 +41,10 @@ namespace Arriba.Test.Services
             _owner = GetAuthenticatedUser("user3", PermissionScope.Owner);
 
             _databaseFactory = new DatabaseFactory();
+            var securityConfiguration = new ArribaServerConfiguration();
+            securityConfiguration.EnabledAuthentication = true;
             var claimsAuth = new ClaimsAuthenticationService(new MemoryCacheFactory());
-            var factory = new ArribaManagementServiceFactory(_databaseFactory.GetDatabase(), claimsAuth);
+            var factory = new ArribaManagementServiceFactory(_databaseFactory.GetDatabase(), claimsAuth, securityConfiguration);
 
             _service = factory.CreateArribaManagementService("Users");
             _db = _service.GetDatabaseForOwner(_owner);

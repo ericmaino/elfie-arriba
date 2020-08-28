@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Server.Authorization;
+using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.Model.Security;
@@ -25,10 +26,11 @@ namespace Arriba.Server
         private ComposedCorrector _correctors;
         private IArribaAuthorization _arribaAuthorization;
 
-        protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth)
+        protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth, ISecurityConfiguration securityConfiguration)
         {
             ParamChecker.ThrowIfNull(factory, nameof(factory));
             ParamChecker.ThrowIfNull(claimsAuth, nameof(claimsAuth));
+            ParamChecker.ThrowIfNull(securityConfiguration, nameof(securityConfiguration));
 
             this.EventSource = EventPublisher.CreateEventSource(this.GetType().Name);
             this.Database = factory.GetDatabase();

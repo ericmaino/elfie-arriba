@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Composition;
 using Arriba.Caching;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Communication.Server.Application;
+using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.Server;
@@ -17,8 +19,8 @@ namespace Arriba.Composition
     class ArribaImportApplicationExport : ArribaImportApplication
     {
         [ImportingConstructor]
-        public ArribaImportApplicationExport(DatabaseFactory f, ClaimsAuthenticationService auth)
-            : base(f, auth)
+        public ArribaImportApplicationExport(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration)
+            : base(f, auth, securityConfiguration)
         {
         }
     }
@@ -37,8 +39,18 @@ namespace Arriba.Composition
     class ArribaManagementServiceExport : ArribaManagementService
     {
         [ImportingConstructor]
-        public ArribaManagementServiceExport(SecureDatabase secureDatabase, ICorrector corrector, ClaimsAuthenticationService claims)
-            : base(secureDatabase, corrector, claims)
+        public ArribaManagementServiceExport(SecureDatabase secureDatabase, ICorrector corrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
+            : base(secureDatabase, corrector, claims, securityConfiguration)
+        {
+        }
+    }
+
+    [Export(typeof(IRoutedApplication))]
+    internal class ArribaTableRoutesApplicationExport : ArribaTableRoutesApplication
+    {
+        [ImportingConstructor]
+        public ArribaTableRoutesApplicationExport(DatabaseFactory f, ClaimsAuthenticationService auth, IArribaManagementService managementService, ISecurityConfiguration securityConfiguration)
+            : base(f, auth, managementService, securityConfiguration)
         {
         }
     }
@@ -47,19 +59,9 @@ namespace Arriba.Composition
     internal class ArribaQueryApplicationExport : ArribaQueryApplication
     {
         [ImportingConstructor]
-        public ArribaQueryApplicationExport(DatabaseFactory f, ClaimsAuthenticationService auth)
-            : base(f, auth)
+        public ArribaQueryApplicationExport(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration)
+            : base(f, auth, securityConfiguration)
         { }
-    }
-
-    [Export(typeof(IRoutedApplication))]
-    internal class ArribaTableRoutesApplicationExport : ArribaTableRoutesApplication
-    {
-        [ImportingConstructor]
-        public ArribaTableRoutesApplicationExport(DatabaseFactory f, ClaimsAuthenticationService auth, IArribaManagementService managementService)
-            : base(f, auth, managementService)
-        {
-        }
     }
 
     [Export(typeof(IObjectCacheFactory))]

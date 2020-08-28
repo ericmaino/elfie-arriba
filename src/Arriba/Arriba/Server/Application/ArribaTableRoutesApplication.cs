@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Communication.Server.Application;
+using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
@@ -24,8 +25,8 @@ namespace Arriba.Server.Application
     {
         private readonly IArribaManagementService _service;
 
-        public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth, IArribaManagementService managementService)
-            : base(f, auth)
+        public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth, IArribaManagementService managementService, ISecurityConfiguration securityConfiguration)
+            : base(f, auth, securityConfiguration)
         {
             _service = managementService;
 
