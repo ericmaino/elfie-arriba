@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -45,11 +45,16 @@ namespace Arriba.Server
                                         });
             });
 
-            services.AddOAuth(serverConfig);
-            services.AddSingleton(GetArribaManagementService());
-            services.AddSingleton((_) => serverConfig);
+            //ASP.NET Composition
+            services.AddSingleton(serverConfig);
             services.AddSingleton((_) => serverConfig.OAuthConfig);
+            services.AddOAuth(serverConfig);
             services.AddControllers();
+            
+            //Arriba Composition
+            services.AddSingleton<ISecurityConfiguration>(serverConfig);
+            services.AddSingleton((sp) => GetArribaHost(sp.GetService<ISecurityConfiguration>()));
+            services.AddSingleton((sp) => GetArribaManagementService(sp.GetService<Composition.Host>()));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -63,7 +68,7 @@ namespace Arriba.Server
             app.UseRouting();
             app.UseCors();
             app.UseArribaExceptionMiddleware();
-            
+
             if (serverConfig.EnabledAuthentication)
                 app.UseAuthorization();
 
@@ -76,25 +81,24 @@ namespace Arriba.Server
             });
         }
 
-        private IArribaManagementService GetArribaManagementService()
+        private IArribaManagementService GetArribaManagementService(Composition.Host host)
         {
-            var host = GetArribaHost();
             return host.GetService<IArribaManagementService>();
         }
 
         private async Task HandleArribaRequest(HttpContext context)
         {
-            var host = GetArribaHost();
-
+            var host = context.RequestServices.GetService<Composition.Host>();
             var server = host.GetService<ApplicationServer>();
             var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
             var response = await server.HandleAsync(request, false);
             await Write(request, response, server.ReaderWriter, context);
         }
 
-        private Composition.Host GetArribaHost()
+        private Composition.Host GetArribaHost(ISecurityConfiguration securityConfiguration)
         {
             var host = new Arriba.Composition.Host();
+            host.Add(securityConfiguration);
             host.Compose();
             return host;
         }
