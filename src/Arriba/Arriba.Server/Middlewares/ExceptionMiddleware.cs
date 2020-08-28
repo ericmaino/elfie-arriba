@@ -27,8 +27,9 @@ namespace Arriba.Middlewares
             }
             catch (Exception ex)
             {
-                if (!_env.IsDevelopment())
-                    await HandleExceptionAsync(httpContext, ex);
+                if (_env.IsDevelopment())
+                    throw ex;
+                await HandleExceptionAsync(httpContext, ex);
             }
         }
 
