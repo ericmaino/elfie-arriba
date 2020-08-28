@@ -48,6 +48,7 @@ namespace Arriba.Composition
             };
 
             _configuration = new ContainerConfiguration().WithAssemblies(assemblies.Distinct(), conventions);
+            Compose();
         }
 
         public void Compose()
