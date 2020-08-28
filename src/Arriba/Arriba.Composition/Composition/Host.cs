@@ -3,93 +3,76 @@
 
 using System;
 using System.Collections.Generic;
-using System.Composition.Convention;
-using System.Composition.Hosting;
 using System.Linq;
+using Arriba.Caching;
 using Arriba.Communication;
+using Arriba.Communication.Application;
 using Arriba.Communication.ContentTypes;
+using Arriba.Communication.Server.Application;
+using Arriba.Configuration;
 using Arriba.Model;
+using Arriba.Model.Correctors;
+using Arriba.Server;
+using Arriba.Server.Application;
+using Arriba.Server.Authentication;
+using Arriba.Server.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 
 namespace Arriba.Composition
 {
-    public class Host : IDisposable
+    public static class HostExtensions
     {
-        private CompositionHost _container = null;
-        private ContainerConfiguration _configuration = null;
-
-        public Host()
+        public static void AddArribaServices(this IServiceCollection services, ISecurityConfiguration config)
         {
-            ArribaServices.Initialize();
-            var conventions = new ConventionBuilder();
-            conventions.ForTypesDerivedFrom<IChannel>()
-                .ExportInterfaces()
-                .Shared();
+            services.AddSingleton<ISecurityConfiguration>(config);
+         
+            var arribaTypes = GetArribaTypes();
+            services.AddDerivedTypes<IChannel>(arribaTypes);
+            services.AddDerivedTypes<IContentReader>(arribaTypes);
+            services.AddDerivedTypes<IContentWriter>(arribaTypes);
+            services.AddDerivedTypes<JsonConverter>(arribaTypes);
+            services.AddTransient<JsonContentWriter>();
 
-            conventions.ForTypesDerivedFrom<IContentReader>()
-                .Export<IContentReader>()
-                .Shared();
+            services.AddSingleton<ClaimsAuthenticationService>();
+            services.AddSingleton<IArribaManagementService, ArribaManagementService>();
+            services.AddSingleton<IObjectCacheFactory, MemoryCacheFactory>();
+            services.AddSingleton<SecureDatabase>();
+            services.AddSingleton<DatabaseFactory>();
+            services.AddSingleton<ICorrector, TodayCorrector>();
 
-            conventions.ForTypesDerivedFrom<IContentWriter>()
-                .Export()
-                .Export<IContentWriter>()
-                .Shared();
+            services.AddTransient<IRoutedApplication, ArribaImportApplication>();
+            services.AddTransient<IRoutedApplication, ArribaQueryApplication>();
+            services.AddTransient<IRoutedApplication, ArribaTableRoutesApplication>();
 
-            conventions.ForTypesDerivedFrom<IApplication>()
-                .ExportInterfaces()
-                .Shared();
+            services.AddTransient<IApplication, RoutedApplicationHandler>();
+            services.AddSingleton<ApplicationServer, ComposedApplicationServer>();
+        }
 
+        public static void AddDerivedTypes<T>(this IServiceCollection services, IEnumerable<Type> types, ServiceLifetime lifetime = ServiceLifetime.Transient)
+        {
+            var serviceType = typeof(T);
+            var query = types
+                .Where(instanceType => !instanceType.IsInterface && !instanceType.IsAbstract)
+                .Where(instanceType => serviceType.IsAssignableFrom(instanceType));
+
+            foreach (Type t in query)
+            {
+                services.Add(new ServiceDescriptor(serviceType, t, lifetime));
+            }
+        }
+
+        private static IEnumerable<Type> GetArribaTypes()
+        {
             var assemblies = new[] {
                 // Arriba.dll
                 typeof(Table).Assembly, 
-                // Arriba.Composition.dll
-                typeof(Host).Assembly,
                 // Arriba.Adapter.Newtonsoft
                 typeof(JsonContentWriter).Assembly
             };
 
-            _configuration = new ContainerConfiguration().WithAssemblies(assemblies.Distinct(), conventions);
-            Compose();
-        }
-
-        public void Compose()
-        {
-            _container = _configuration.CreateContainer();
-        }
-
-        public void Add<TContract>(TContract value)
-        {
-            _configuration.WithExport<TContract>(value);
-        }
-
-        public void AddConfigurationValue<T>(string name, T value)
-        {
-            _configuration.WithExport<T>(value, contractName: name);
-        }
-
-        public T GetService<T>()
-        {
-            return _container.GetExport<T>();
-        }
-
-        public IEnumerable<T> GetServices<T>()
-        {
-            return _container.GetExports<T>();
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposing) return;
-
-            if (_container != null)
-            {
-                _container.Dispose();
-            }
+            return assemblies.SelectMany(x => x.GetTypes())
+                .ToList();
         }
     }
 }

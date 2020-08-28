@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Arriba.Communication;
-using Arriba.Communication.Server.Application;
+using Arriba.Composition;
 using Arriba.Configuration;
 using Arriba.Extensions;
 using Arriba.Owin;
@@ -53,8 +53,7 @@ namespace Arriba.Server
             
             //Arriba Composition
             services.AddSingleton<ISecurityConfiguration>(serverConfig);
-            services.AddSingleton((sp) => GetArribaHost(sp.GetService<ISecurityConfiguration>()));
-            services.AddSingleton((sp) => GetArribaManagementService(sp.GetService<Composition.Host>()));
+            services.AddArribaServices(serverConfig);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -81,26 +80,12 @@ namespace Arriba.Server
             });
         }
 
-        private IArribaManagementService GetArribaManagementService(Composition.Host host)
-        {
-            return host.GetService<IArribaManagementService>();
-        }
-
         private async Task HandleArribaRequest(HttpContext context)
         {
-            var host = context.RequestServices.GetService<Composition.Host>();
-            var server = host.GetService<ApplicationServer>();
+            var server = context.RequestServices.GetService<ApplicationServer>();
             var request = new ArribaHttpContextRequest(context, server.ReaderWriter);
             var response = await server.HandleAsync(request, false);
             await Write(request, response, server.ReaderWriter, context);
-        }
-
-        private Composition.Host GetArribaHost(ISecurityConfiguration securityConfiguration)
-        {
-            var host = new Arriba.Composition.Host();
-            host.Add(securityConfiguration);
-            host.Compose();
-            return host;
         }
 
         private async Task Write(ArribaHttpContextRequest request, IResponse response, IContentReaderWriterService readerWriter, HttpContext context)

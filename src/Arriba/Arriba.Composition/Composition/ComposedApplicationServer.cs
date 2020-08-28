@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Composition;
 using System.Linq;
 
 using Arriba.Communication;
@@ -13,15 +12,13 @@ namespace Arriba.Composition
     /// <summary>
     /// Represents an application server that fulfills its dependnecies via composition.
     /// </summary>
-    [Export(typeof(ApplicationServer)), Shared]
     public class ComposedApplicationServer : ApplicationServer
     {
-        [ImportingConstructor]
         public ComposedApplicationServer(
-            [ImportMany] IEnumerable<IApplication> applications,
-            [ImportMany] IEnumerable<IContentReader> readers,
-            [ImportMany] IEnumerable<IContentWriter> writers,
-            [ImportMany] IEnumerable<IChannel> channels)
+            IEnumerable<IApplication> applications,
+            IEnumerable<IContentReader> readers,
+            IEnumerable<IContentWriter> writers,
+            IEnumerable<IChannel> channels)
         {
             if (!applications.Any())
             {
