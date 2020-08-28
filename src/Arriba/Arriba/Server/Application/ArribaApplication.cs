@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -35,7 +35,7 @@ namespace Arriba.Server
             this.EventSource = EventPublisher.CreateEventSource(this.GetType().Name);
             this.Database = factory.GetDatabase();
 
-            _arribaAuthorization = new ArribaAuthorization(this.Database, claimsAuth);
+            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(this.Database, claimsAuth, securityConfiguration);
 
             // Cache correctors which aren't request specific
             // Cache the People table so that it isn't reloaded for every request.
