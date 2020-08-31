@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Arriba.Caching;
+using Arriba.Client.Serialization.Json;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Communication.ContentTypes;
@@ -12,6 +14,7 @@ using Arriba.Communication.Server.Application;
 using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Correctors;
+using Arriba.Serialization.Json;
 using Arriba.Server;
 using Arriba.Server.Application;
 using Arriba.Server.Authentication;
@@ -27,12 +30,8 @@ namespace Arriba.Composition
         {
             services.AddSingleton<ISecurityConfiguration>(config);
          
-            var arribaTypes = GetArribaTypes();
-            services.AddDerivedTypes<IChannel>(arribaTypes);
-            services.AddDerivedTypes<IContentReader>(arribaTypes);
-            services.AddDerivedTypes<IContentWriter>(arribaTypes);
-            services.AddDerivedTypes<JsonConverter>(arribaTypes);
-            services.AddTransient<JsonContentWriter>();
+            services.AddContentReadersWriters();
+            services.AddJsonConverters();
 
             services.AddSingleton<ClaimsAuthenticationService>();
             services.AddSingleton<IArribaManagementService, ArribaManagementService>();
@@ -49,30 +48,26 @@ namespace Arriba.Composition
             services.AddSingleton<ApplicationServer, ComposedApplicationServer>();
         }
 
-        public static void AddDerivedTypes<T>(this IServiceCollection services, IEnumerable<Type> types, ServiceLifetime lifetime = ServiceLifetime.Transient)
+        private static void AddContentReadersWriters(this IServiceCollection services)
         {
-            var serviceType = typeof(T);
-            var query = types
-                .Where(instanceType => !instanceType.IsInterface && !instanceType.IsAbstract)
-                .Where(instanceType => serviceType.IsAssignableFrom(instanceType));
+            services.AddTransient<IContentReader,StringContentReader>();
+            services.AddTransient<IContentReader, JsonContentReader>();
+            services.AddTransient<IContentWriter, StringContentWriter>();
+            services.AddTransient<IContentWriter, JsonContentWriter>();
+            services.AddTransient<IContentWriter, JsonpContentWriter>();
 
-            foreach (Type t in query)
-            {
-                services.Add(new ServiceDescriptor(serviceType, t, lifetime));
-            }
+            // Direct type requried by JsonPContentWriter
+            services.AddTransient<JsonContentWriter>();
         }
 
-        private static IEnumerable<Type> GetArribaTypes()
+        private static void AddJsonConverters(this IServiceCollection services)
         {
-            var assemblies = new[] {
-                // Arriba.dll
-                typeof(Table).Assembly, 
-                // Arriba.Adapter.Newtonsoft
-                typeof(JsonContentWriter).Assembly
-            };
-
-            return assemblies.SelectMany(x => x.GetTypes())
-                .ToList();
+            services.AddTransient<JsonConverter,ColumnDetailsJsonConverter>();
+            services.AddTransient<JsonConverter, DataBlockJsonConverter>();
+            services.AddTransient<JsonConverter, IAggregatorJsonConverter>();
+            services.AddTransient<JsonConverter, IExpressionJsonConverter>();
+            services.AddTransient<JsonConverter, ValueJsonConverter>();
+            services.AddTransient<JsonConverter, ByteBlockJsonConverter>();
         }
     }
 }
