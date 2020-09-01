@@ -245,7 +245,10 @@ namespace Arriba.Communication.Server.Application
             Table table = _database[tableName];
 
             ExecutionDetails executionDetails = new ExecutionDetails();
-            table.VerifyConsistency(verificationLevel, executionDetails);
+            using (var symmEvent = _log.TrackExecutionTime("table"))
+            {
+                table.VerifyConsistency(verificationLevel, executionDetails);
+            }
 
             if (executionDetails.Succeeded)
             {

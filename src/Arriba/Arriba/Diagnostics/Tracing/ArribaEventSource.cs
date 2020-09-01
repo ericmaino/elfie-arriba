@@ -33,6 +33,7 @@ namespace Arriba.Diagnostics.Tracing
         void ServiceStart<T>();
         void ServiceComplete<T>();
         void TrackFatalException(Exception ex, IServiceIdentity id);
+        ISymmetricEvent TrackExecutionTime(string name);
         ISymmetricEvent TrackExecutionTime<T>(T payload);
         void UsingCachePath(string value);
         void TableMiss(string tableName);

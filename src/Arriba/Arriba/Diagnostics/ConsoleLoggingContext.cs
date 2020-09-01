@@ -101,6 +101,10 @@ namespace Arriba.Diagnostics
         {
             throw new NotImplementedException();
         }
+        public ISymmetricEvent TrackExecutionTime(string name)
+        {
+            return new ArribaSymmetricEvent(name);
+        }
 
         public void TrackFatalException(Exception ex, IServiceIdentity id)
         {
