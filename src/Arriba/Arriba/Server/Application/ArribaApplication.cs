@@ -17,6 +17,7 @@ using Arriba.Monitoring;
 using Arriba.ParametersCheckers;
 using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
+using Arriba.Diagnostics.Tracing;
 
 namespace Arriba.Server
 {
@@ -25,8 +26,9 @@ namespace Arriba.Server
         protected static readonly ArribaResponse ContinueToNextHandlerResponse = null;
         private ComposedCorrector _correctors;
         private IArribaAuthorization _arribaAuthorization;
+        private readonly ILoggingContext _log;
 
-        protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth, ISecurityConfiguration securityConfiguration)
+        protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth, ISecurityConfiguration securityConfiguration, ILoggingContext log)
         {
             ParamChecker.ThrowIfNull(factory, nameof(factory));
             ParamChecker.ThrowIfNull(claimsAuth, nameof(claimsAuth));
@@ -34,8 +36,9 @@ namespace Arriba.Server
 
             this.EventSource = EventPublisher.CreateEventSource(this.GetType().Name);
             this.Database = factory.GetDatabase();
+            _log = log.Initialize<ArribaApplication>();
 
-            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(this.Database, claimsAuth, securityConfiguration);
+            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(this.Database, claimsAuth, securityConfiguration, _log);
 
             // Cache correctors which aren't request specific
             // Cache the People table so that it isn't reloaded for every request.
