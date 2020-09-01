@@ -99,7 +99,7 @@ namespace Arriba.Diagnostics
 
         public ISymmetricEvent TrackExecutionTime<T>(T payload)
         {
-            throw new NotImplementedException();
+            return new ArribaSymmetricEvent<T>(payload);
         }
         public ISymmetricEvent TrackExecutionTime(string name)
         {

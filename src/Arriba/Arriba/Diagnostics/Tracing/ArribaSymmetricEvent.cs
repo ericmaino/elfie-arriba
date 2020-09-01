@@ -2,24 +2,40 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
-using System.Text;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+using System.Text.Json;
 
 namespace Arriba.Diagnostics.Tracing
 {
-    class ArribaSymmetricEvent : EventSource, ISymmetricEvent
+    class ArribaSymmetricEvent<T> : EventSource, ISymmetricEvent where T: ISerializable
     {
         private bool disposedValue;
         private readonly Stopwatch sw = new Stopwatch();
-        private readonly string name = "SymmetricEvent";
+        private string name = string.Empty;
+        private string eventPayload = string.Empty;
 
-        public ArribaSymmetricEvent()
+        private void Initialize()
         {
+            if (name == string.Empty) name = "SymmetricEvent";
             sw.Start();
         }
 
-        public ArribaSymmetricEvent(string name)
+        public ArribaSymmetricEvent()
         {
-            this.name = name;
+           Initialize();
+        }
+
+        public ArribaSymmetricEvent(string eventName)
+        {
+            name = eventName;
+            Initialize();
+        }
+
+        public ArribaSymmetricEvent(T payload)
+        {
+            eventPayload = JsonSerializer.Serialize<T>(payload);
+            Initialize();
         }
 
         protected override void Dispose(bool disposing)
@@ -41,7 +57,7 @@ namespace Arriba.Diagnostics.Tracing
         [Event(eventId:1)]
         void WriteSymmetricEvent()
         {
-            WriteEvent(1, new { Name = name, TimeElapsed = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds) });
+            WriteEvent(1, new { Name = name, TimeElapsed = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds), Payload = eventPayload });
         }
     }
 }
