@@ -3,12 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Arriba.Communication.ContentTypes;
+using Arriba.Diagnostics.SemanticLogging;
 using Arriba.Monitoring;
 
 namespace Arriba.Communication
@@ -48,6 +50,8 @@ namespace Arriba.Communication
         /// </summary>
         private Task[] _channelTasks = null;
 
+        private IArribaTelemetry tel;
+
         private EventPublisherSource _eventSource = EventPublisher.CreateEventSource(new MonitorEventEntry() { Source = "Application", OpCode = MonitorEventOpCode.Mark });
 
         /// <summary>
@@ -55,8 +59,10 @@ namespace Arriba.Communication
         /// </summary>
         private static IResponse s_notFoundResponse = new Response(ResponseStatus.NotFound, "Resource not found");
 
-        public ApplicationServer()
-        { }
+        public ApplicationServer(IArribaTelemetry telemetry)
+        {
+            tel = telemetry;
+        }
 
         /// <summary>
         /// Registers the specified channel for the application. 
@@ -65,7 +71,8 @@ namespace Arriba.Communication
         public void RegisterRequestChannel(IChannel channel)
         {
             _channels.Add(channel);
-            Trace.TraceInformation("Added application channel {0}", channel.Description);
+            tel.TrackInfo("channel", channel.Description);
+            //Trace.TraceInformation("Added application channel {0}", channel.Description);
         }
 
         /// <summary>
@@ -75,7 +82,8 @@ namespace Arriba.Communication
         public void RegisterApplication(IApplication application)
         {
             _applications.Add(application);
-            Trace.TraceInformation("Added application {0}", application.Name);
+
+            tel.TrackInfo("application", application.Name);
         }
 
         /// <summary>
@@ -85,7 +93,7 @@ namespace Arriba.Communication
         public void RegisterContentReader(IContentReader reader)
         {
             _readerWriter.AddReader(reader);
-            Trace.TraceInformation("Added content reader \"{0}\" for content types [{1}]", reader.GetType().Name, String.Join(", ", reader.ContentTypes));
+            tel.TrackInfo(new Dictionary<string, string> { { "ContentReaderWriterService", reader.GetType().Name }, { "contentTypes", String.Join(", ", reader.ContentTypes) } });
         }
 
         /// <summary>
@@ -95,7 +103,7 @@ namespace Arriba.Communication
         public void RegisterContentWriter(IContentWriter writer)
         {
             _readerWriter.AddWriter(writer);
-            Trace.TraceInformation("Added content writer \"{0}\" for content type [{1}]", writer.GetType().Name, writer.ContentType);
+            tel.TrackInfo(new Dictionary<string, string> { { "New content Writer", writer.GetType().Name }, { "contentType", writer.ContentType } });
         }
 
         public IContentReaderWriterService ReaderWriter
@@ -117,11 +125,17 @@ namespace Arriba.Communication
 
             if (_channels.Count == 0)
             {
-                throw new InvalidOperationException("No application channels have been registered to the application server");
+                var oEx = new InvalidOperationException("No application channels have been registered to the application server");
+                tel.TrackException(oEx);
+
+                throw oEx;
             }
             else if (_applications.Count == 0)
             {
-                throw new InvalidOperationException("No applications have been registered with the application server");
+                var oEx = new InvalidOperationException("No applications have been registered with the application server");
+                tel.TrackException(oEx);
+
+                throw oEx;
             }
 
             _isRunning = true;
@@ -129,12 +143,13 @@ namespace Arriba.Communication
             // Start all the channels
             _channelTasks = _channels.Select(s => s.StartAsync(this, _readerWriter, _cancellationSource.Token)).ToArray();
 
-            Trace.TraceInformation("Application server running with {0} applications and {1} channels...", _applications.Count, _channels.Count);
+            tel.TrackInfo(new Dictionary<string, string> { { "Running Apps", _applications.Count.ToString() }, { "Channel Count", _channels.Count.ToString() } });
+            
 
             // Wait for all channels to complete (this will come from cancellation) 
             await Task.WhenAll(_channelTasks);
 
-            Trace.TraceInformation("All channels shutdown");
+            tel.TrackInfo("All channels shutdown");
         }
 
         /// <summary>
@@ -142,7 +157,7 @@ namespace Arriba.Communication
         /// </summary>
         public void Stop()
         {
-            Trace.TraceInformation("Shutting down application server...");
+            tel.TrackInfo("Shutting down application server...");
             _cancellationSource.Cancel();
             Task.WaitAll(_channelTasks);
         }
@@ -201,6 +216,7 @@ namespace Arriba.Communication
             }
             catch (Exception e)
             {
+                tel.TrackException(e);
                 handleException = e;
             }
 
@@ -208,13 +224,14 @@ namespace Arriba.Communication
             {
                 string errorMessage = String.Format("Application \"{0}\" return a null response result");
 
-                Trace.TraceError(errorMessage);
+                tel.TrackInfo(errorMessage);
                 return Response.Error(errorMessage);
             }
             else if (handleException != null)
             {
-                Trace.TraceError("Unexpected {0} for request [1]", handleException.GetType().Name, GetRequestIdentityString(request));
-                Trace.TraceError(handleException.ToString());
+                tel.ProvideContext("Unexpected", handleException.GetType().Name);
+                tel.ProvideContext("Unexpected in Request", GetRequestIdentityString(request));
+                tel.TrackInfo("Unexpected exception", handleException.ToString());
                 var resp = Response.Error(handleException);
 
                 resp.Headers.Add("Runtime-Unhandled-Exception", handleException.GetType().FullName);
@@ -244,7 +261,10 @@ namespace Arriba.Communication
         {
             if (!_isRunning)
             {
-                throw new InvalidOperationException("Application server is running");
+                var e =  new InvalidOperationException("Application server is running");
+                tel.TrackException(e);
+
+                throw e;
             }
         }
 
@@ -252,7 +272,10 @@ namespace Arriba.Communication
         {
             if (_isRunning)
             {
-                throw new InvalidOperationException("Application server is not running");
+                var e = new InvalidOperationException("Application server is not running");
+                tel.TrackException(e);
+
+                throw e;
             }
         }
 

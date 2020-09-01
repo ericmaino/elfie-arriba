@@ -12,6 +12,7 @@ using Arriba.Communication.Application;
 using Arriba.Communication.ContentTypes;
 using Arriba.Communication.Server.Application;
 using Arriba.Configuration;
+using Arriba.Diagnostics.SemanticLogging;
 using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.Serialization.Json;
@@ -46,6 +47,7 @@ namespace Arriba.Composition
 
             services.AddTransient<IApplication, RoutedApplicationHandler>();
             services.AddSingleton<ApplicationServer, ComposedApplicationServer>();
+            services.AddTransient<IArribaTelemetry, ArribaTelemetry>();
         }
 
         private static void AddContentReadersWriters(this IServiceCollection services)

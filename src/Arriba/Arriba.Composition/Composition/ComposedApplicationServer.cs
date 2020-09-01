@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Arriba.Communication;
+using Arriba.Diagnostics.SemanticLogging;
 
 namespace Arriba.Composition
 {
@@ -18,7 +19,8 @@ namespace Arriba.Composition
             IEnumerable<IApplication> applications,
             IEnumerable<IContentReader> readers,
             IEnumerable<IContentWriter> writers,
-            IEnumerable<IChannel> channels)
+            IEnumerable<IChannel> channels,
+            IArribaTelemetry telemetry) : base(telemetry)
         {
             if (!applications.Any())
             {
