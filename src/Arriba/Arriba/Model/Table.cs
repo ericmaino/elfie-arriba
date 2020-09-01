@@ -9,7 +9,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Arriba.Diagnostics;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.Model.Column;
 using Arriba.Model.Correctors;
@@ -28,11 +29,13 @@ namespace Arriba.Model
         public bool RunParallel { get; set; }
         public string Name;
 
+        private readonly ILoggingContext _log;
+        private static readonly ILoggingContext _sLog = LoggingContextFactory.CreateDefaultLoggingContext();
+
         private ReaderWriterLockSlim _locker;
         private List<Partition> _partitions;
         private ColumnAliasCorrector _columnAliasCorrector;
         private Tuple<Type, IComputePartition> _splitter;
-
         private byte _partitionBits;
 
         public ParallelOptions ParallelOptions { get; set; }
@@ -42,8 +45,14 @@ namespace Arriba.Model
         /// </summary>
         /// <param name="tableName">name of the table</param>
         /// <param name="requiredItemCount">number of items the table is required to hold (it may be capable of holding more); this will dictate the partition count</param>
-        public Table(string tableName, long requiredItemCount) : this()
+        public Table(string tableName, long requiredItemCount) 
+            : this(tableName, requiredItemCount, LoggingContextFactory.CreateDefaultLoggingContext())
+        { 
+        }
+
+        public Table(string tableName, long requiredItemCount, ILoggingContext log) : this()
         {
+            _log = log;
             this.Name = tableName;
 
             // Pad the min row count by 5% to account for imperfect distribution of items
@@ -786,12 +795,12 @@ namespace Arriba.Model
             {
                 if (partitionFile.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
                 {
-                    Trace.Write($"Found Table {tableName}");
+                    _sLog.TableHit(tableName);
                     return true;
                 }
             }
 
-            Trace.Write($"Cannot Find Table {tableName}");
+            _sLog.TableMiss(tableName);
             return false;
         }
 
@@ -877,6 +886,8 @@ namespace Arriba.Model
                 return lastWriteTimeUtc;
             }
         }
+
+        public string FriendlyServiceName => throw new NotImplementedException();
 
         public void Save()
         {

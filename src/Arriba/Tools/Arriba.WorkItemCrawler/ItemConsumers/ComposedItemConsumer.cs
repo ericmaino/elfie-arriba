@@ -13,6 +13,8 @@ namespace Arriba.ItemConsumers
     {
         private IEnumerable<IItemConsumer> _innerConsumers;
 
+        public string FriendlyServiceName => throw new System.NotImplementedException();
+
         public ComposedItemConsumer(params IItemConsumer[] innerConsumers)
         {
             _innerConsumers = innerConsumers;

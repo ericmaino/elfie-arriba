@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using Arriba.Diagnostics.Tracing;
 using Arriba.ItemConsumers;
 using Arriba.Serialization;
 using Arriba.Serialization.Csv;
@@ -34,11 +35,14 @@ namespace Arriba.ItemProviders
         private Queue<string> RemainingCsvs { get; set; }
         private CsvReader CurrentCsvReader { get; set; }
         private IEnumerator<CsvRow> CurrentRowEnumerator { get; set; }
+        
+        private readonly ILoggingContext _log;
 
-        public CsvReaderItemProvider(string tableName, string changedDateColumn, DateTimeOffset start, DateTimeOffset end)
+        public CsvReaderItemProvider(string tableName, string changedDateColumn, DateTimeOffset start, DateTimeOffset end, ILoggingContext log)
         {
             start = start.ToUniversalTime();
             end = end.ToUniversalTime();
+            _log = log;
 
             TableName = tableName;
             ChangedDateColumn = changedDateColumn;
@@ -148,7 +152,7 @@ namespace Arriba.ItemProviders
         {
             if (RemainingCsvs.Count == 0)
             {
-                Trace.WriteLine("All CSVs read. Done.");
+                _log.ProcessingComplete<CsvReaderItemProvider>();
                 return false;
             }
 
@@ -157,7 +161,7 @@ namespace Arriba.ItemProviders
 
             // Open the next CSV and get the first row
             string nextCsvPath = RemainingCsvs.Dequeue();
-            Trace.WriteLine("Loading CSV data from '{0}'", nextCsvPath);
+            _log.LoadFile<CsvReaderItemProvider>(nextCsvPath);
             CurrentCsvReader = new CsvReader(new FileStream(nextCsvPath, FileMode.Open), new CsvReaderSettings() { MaximumSingleCellLines = -1 });
             CurrentRowEnumerator = CurrentCsvReader.Rows.GetEnumerator();
 

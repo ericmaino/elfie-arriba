@@ -25,6 +25,8 @@ namespace Arriba.ItemConsumers
         private IEnumerable<string> ColumnNames { get; set; }
         private CsvWriter Writer { get; set; }
 
+        public string FriendlyServiceName => throw new NotImplementedException();
+
         public CsvWriterItemConsumer(string tableName, string changedDateColumn)
         {
             this.TableName = tableName;

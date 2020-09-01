@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Arriba.Composition;
 using Arriba.Configuration;
+using Arriba.Diagnostics;
 using Arriba.Diagnostics.Tracing;
 using Arriba.ItemConsumers;
 using Arriba.ItemProviders;
@@ -20,7 +21,7 @@ namespace Arriba
     {
         private static async Task<int> Main(string[] args)
         {
-            return await ArribaProgram.Run<WorkItemCrawler>(async () =>
+            return await new ArribaProgram().Run<WorkItemCrawler>(async () =>
             {
                 return await RunCrawler(args);
             });
@@ -35,10 +36,10 @@ namespace Arriba
             }
 
             ArribaServices.Initialize();
+            var _log = LoggingContextFactory.CreateDefaultLoggingContext();
             var configLoader = new ArribaConfigurationLoader(args);
             var configurationName = configLoader.GetStringValue("configName");
             var mode = configLoader.GetStringValue("mode", "-i").ToLowerInvariant();
-            Trace.WriteLine("Launching Crawler");
             Trace.WriteLine($"Using configName: {configurationName} mode:{mode}");
 
             using (FileLock locker = FileLock.TryGet(string.Format("Arriba.TfsWorkItemCrawler.{0}.lock", configurationName)))
@@ -78,23 +79,14 @@ namespace Arriba
                     consumer.CreateTable(columnsToAdd, config.LoadPermissions());
 
                     // Build a crawler and crawl the items in restartable order
-                    DefaultCrawler crawler = new DefaultCrawler(config, columnsToAdd.Select((cd) => cd.Name), configurationName, !mode.Equals("-i"));
+                    DefaultCrawler crawler = new DefaultCrawler(config, columnsToAdd.Select((cd) => cd.Name), configurationName, !mode.Equals("-i"), _log);
                     await crawler.Crawl(provider, consumer);
 
                     return 0;
                 }
-                catch (AggregateException ex)
-                {
-                    foreach (Exception inner in ex.InnerExceptions)
-                    {
-                        Trace.TraceError(string.Format("ERROR: {0}\r\n{1}", Environment.CommandLine, inner));
-                    }
-
-                    return -2;
-                }
                 catch (Exception ex)
                 {
-                    Trace.TraceError(string.Format("ERROR: {0}\r\n{1}", Environment.CommandLine, ex));
+                    _log.TrackFatalException(ex, null);
                     return -2;
                 }
             }

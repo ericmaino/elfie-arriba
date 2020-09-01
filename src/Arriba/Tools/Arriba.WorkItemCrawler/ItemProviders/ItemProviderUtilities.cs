@@ -3,6 +3,7 @@
 
 using System;
 using System.Text;
+using Arriba.Diagnostics;
 using Arriba.Extensions;
 using Arriba.ParametersCheckers;
 using Arriba.Serialization;
@@ -22,7 +23,7 @@ namespace Arriba.ItemProviders
             {
                 case "":
                 case "azdo":
-                    return new AzureDevOpsItemProvider(config);
+                    return new AzureDevOpsItemProvider(config, LoggingContextFactory.CreateDefaultLoggingContext());
                 default:
                     throw new InvalidOperationException(string.Format("{0} is an unknown Item Provider", config.ItemProvider));
             }
