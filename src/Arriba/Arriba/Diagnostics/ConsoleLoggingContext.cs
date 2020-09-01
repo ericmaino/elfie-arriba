@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.Tracing;
-using System.Text;
 using Arriba.Diagnostics.Tracing;
 using Arriba.Model.Column;
 
@@ -14,12 +12,22 @@ namespace Arriba.Diagnostics
             throw new NotImplementedException();
         }
 
+        public void DuplicateInstanceDetected()
+        {
+            throw new NotImplementedException();
+        }
+
         public EventListener EnableEvents(EventListener listener, EventLevel level)
         {
             throw new NotImplementedException();
         }
 
         public void ExceptionOnIndexing(ColumnDetails column, IItemIdentifier item, Exception ex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ILoggingContext Initialize<T>()
         {
             throw new NotImplementedException();
         }
@@ -74,6 +82,11 @@ namespace Arriba.Diagnostics
             throw new NotImplementedException();
         }
 
+        public void TokenResult(string result)
+        {
+            throw new NotImplementedException();
+        }
+
         public void TrackExceptionOnRead(Exception e, IServiceIdentity id)
         {
             throw new NotImplementedException();
@@ -90,6 +103,11 @@ namespace Arriba.Diagnostics
         }
 
         public void TrackFatalException(Exception ex, IServiceIdentity id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TrackPermissionOverride()
         {
             throw new NotImplementedException();
         }

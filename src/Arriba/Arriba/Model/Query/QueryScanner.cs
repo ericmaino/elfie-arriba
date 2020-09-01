@@ -155,7 +155,7 @@ namespace Arriba.Model.Query
         ///  token and update Current.
         /// </summary>
         public Token Current { get; private set; }
-
+        
         static QueryScanner()
         {
             // Initialize NonIdentifiers, if needed (only one instance is required)
@@ -248,17 +248,6 @@ namespace Arriba.Model.Query
 
             //throw new HtmlParseException(StringExtensions.Format("({0}, {1}): {2} found {3} ('{4}') where {5} was expected", LineNumber, CharInLine, caller, Current.Type, Current.Content, String.Join(" or ", allowedTypes)));
             return false;
-        }
-
-        /// <summary>
-        ///  Communicate a warning during scanning or parsing. Used to communicate
-        ///  non-fatal problems in the Html seen.
-        /// </summary>
-        /// <param name="caller">The component reporting the warning</param>
-        /// <param name="warning">Warning message indicating the problem</param>
-        public void Warn(string caller, string warning)
-        {
-            ArribaLogs.WriteLine("Parse Warning (Index {0}, Parsing {1}): {2}", CurrentIndex, caller, warning);
         }
 
         /// <summary>

@@ -19,9 +19,13 @@ namespace Arriba.Diagnostics
     public class DailyLogTraceListener : TraceListener
     {
         private string LogFilePath { get; set; }
+        private ILoggingContext Log { get; }
 
-        public DailyLogTraceListener() : this(GetDefaultLogFilePath())
-        { }
+        public DailyLogTraceListener(ILoggingContext log) 
+            : this(GetDefaultLogFilePath())
+        {
+            Log = log.Initialize<DailyLogTraceListener>();
+        }
 
         public DailyLogTraceListener(string logFilePath)
         {
@@ -43,9 +47,9 @@ namespace Arriba.Diagnostics
             {
                 File.AppendAllText(this.LogFilePath, message);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                ArribaLogs.WriteLine("ERROR: DailyLogTraceListener unable to log to '{0}'. Message: \r\n{1}", this.LogFilePath, message);
+                Log.TrackExceptionOnSave(ex, null);
             }
         }
 
@@ -55,9 +59,9 @@ namespace Arriba.Diagnostics
             {
                 File.AppendAllText(this.LogFilePath, message + Environment.NewLine);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                ArribaLogs.WriteLine("ERROR: DailyLogTraceListener unable to log to '{0}'. Message: \r\n{1}", this.LogFilePath, message);
+                Log.TrackExceptionOnSave(ex, null);
             }
         }
     }

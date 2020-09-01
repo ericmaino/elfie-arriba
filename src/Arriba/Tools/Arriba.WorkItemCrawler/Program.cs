@@ -49,7 +49,7 @@ namespace Arriba
                     // Ensure we got the file lock (no duplicate crawlers
                     if (locker == null)
                     {
-                        ArribaLogs.WriteLine("Another instance running. Stopping.");
+                        _log.DuplicateInstanceDetected();
                         return -2;
                     }
 

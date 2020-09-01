@@ -1,6 +1,7 @@
 ﻿using Arriba.Caching;
 using Arriba.Communication.Server.Application;
 using Arriba.Configuration;
+using Arriba.Diagnostics;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
@@ -10,6 +11,7 @@ using Arriba.Structures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Security.Claims;
 using System.Security.Principal;
 
@@ -45,8 +47,9 @@ namespace Arriba.Test.Services
             securityConfiguration.EnabledAuthentication = true;
             var claimsAuth = new ClaimsAuthenticationService(new MemoryCacheFactory());
             var factory = new ArribaManagementServiceFactory(_databaseFactory.GetDatabase(), claimsAuth, securityConfiguration);
+            var log = new ConsoleLoggingContext();
 
-            _service = factory.CreateArribaManagementService("Users");
+            _service = factory.CreateArribaManagementService(log, "Users");
             _db = _service.GetDatabaseForOwner(_owner);
         }
 

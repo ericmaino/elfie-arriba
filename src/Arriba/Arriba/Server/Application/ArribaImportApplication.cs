@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Monitoring;
@@ -22,8 +23,8 @@ namespace Arriba.Server.Application
     {
         private const int BatchSize = 100;
 
-        public ArribaImportApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration)
-            : base(f, auth, securityConfiguration)
+        public ArribaImportApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+            : base(f, auth, securityConfiguration, log)
         {
             // POST /table/foo?type=csv -- Import CSV data 
             this.Post(new RouteSpecification("/table/:tableName", new UrlParameter("type", "csv")), this.ValidateWriteAccess, this.CsvAppend);

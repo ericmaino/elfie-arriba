@@ -1,4 +1,5 @@
 ﻿using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.ParametersCheckers;
@@ -25,14 +26,14 @@ namespace Arriba.Communication.Server.Application
             _securityConfiguration = securityConfiguration;
         }
 
-        public IArribaManagementService CreateArribaManagementService(string userAliasCorrectorTable = "")
+        public IArribaManagementService CreateArribaManagementService(ILoggingContext log, string userAliasCorrectorTable = "")
         {
             if (string.IsNullOrWhiteSpace(userAliasCorrectorTable))
                 userAliasCorrectorTable = Table_People;
 
             var correctors = new ComposedCorrector(new TodayCorrector(), new UserAliasCorrector(secureDatabase[userAliasCorrectorTable]));
 
-            return new ArribaManagementService(secureDatabase, correctors, _claimsAuth, _securityConfiguration);
+            return new ArribaManagementService(secureDatabase, correctors, _claimsAuth, _securityConfiguration, log);
         }
     }
 }
