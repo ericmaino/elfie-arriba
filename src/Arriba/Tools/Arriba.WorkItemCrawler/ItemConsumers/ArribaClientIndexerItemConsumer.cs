@@ -29,6 +29,8 @@ namespace Arriba.ItemConsumers
 
         private Stopwatch SinceLastWrite { get; set; }
 
+        public string FriendlyServiceName => throw new NotImplementedException();
+
         public ArribaClientIndexerItemConsumer(CrawlerConfiguration config, string serviceUrl)
         {
             this.Configuration = config;

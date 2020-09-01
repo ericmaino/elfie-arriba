@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using Arriba.Diagnostics.Tracing;
 using Arriba.ItemConsumers;
 using Arriba.ItemProviders;
 using Arriba.Structures;
@@ -18,11 +19,14 @@ namespace Arriba
         private CrawlerConfiguration Configuration { get; set; }
         private string ChangedDateColumn { get; set; }
 
-        public CsvImporter(CrawlerConfiguration config, string configurationName, string changedDateColumn)
+        private readonly ILoggingContext _log;
+
+        public CsvImporter(CrawlerConfiguration config, string configurationName, string changedDateColumn, ILoggingContext log)
         {
             Configuration = config;
             ConfigurationName = configurationName;
             ChangedDateColumn = changedDateColumn;
+            _log = log;
         }
 
         public void Import(IItemConsumer consumer)
@@ -34,7 +38,7 @@ namespace Arriba
 
             try
             {
-                provider = new CsvReaderItemProvider(Configuration.ArribaTable, ChangedDateColumn, lastCutoffWritten, DateTime.UtcNow);
+                provider = new CsvReaderItemProvider(Configuration.ArribaTable, ChangedDateColumn, lastCutoffWritten, DateTime.UtcNow, _log);
 
                 while (true)
                 {
@@ -74,9 +78,10 @@ namespace Arriba
 
         private void Save(IItemConsumer consumer, DateTimeOffset lastCutoffWritten)
         {
-            Trace.WriteLine("Saving...");
-            consumer.Save();
-            Trace.WriteLine("Save Complete.");
+            using (_log.TrackSave(consumer))
+            {
+                consumer.Save();
+            }
 
             // Record the new last cutoff written
             ItemProviderUtilities.SaveLastCutoff(Configuration.ArribaTable, ConfigurationName + ".CSV", lastCutoffWritten);

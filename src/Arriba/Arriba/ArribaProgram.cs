@@ -1,17 +1,30 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Arriba.Diagnostics;
 using Arriba.Diagnostics.Tracing;
 
 namespace Arriba
 {
     public class ArribaProgram
     {
-        public static async Task Run<T>(Func<Task> program)
+        private readonly ILoggingContext _log;
+
+        public ArribaProgram()
+            : this(LoggingContextFactory.CreateDefaultLoggingContext())
+        {
+        }
+
+        public ArribaProgram(ILoggingContext log)
+        {
+            _log = log;
+        }
+
+        public async Task Run<T>(Func<Task> program)
         {
             await ArribaRun<T>(program);
         }
 
-        public static async Task<int> Run<T>(Func<Task<int>> program)
+        public async Task<int> Run<T>(Func<Task<int>> program)
         {
             var x = new ReturnCode();
 
@@ -23,12 +36,21 @@ namespace Arriba
             return x.Value;
         }
 
-        private static async Task ArribaRun<T>(Func<Task> program)
+        private async Task ArribaRun<T>(Func<Task> program)
         {
-            using (ArribaLogs.EnableConsoleOutput())
-            {
-                await program();
-            }
+                try
+                {
+                    _log.ServiceStart<T>();
+                    await program();
+                }
+                catch (Exception ex)
+                {
+                    _log.TrackFatalException(ex, null);
+                }
+                finally
+                {
+                    _log.ServiceComplete<T>();
+                }
         }
 
         private class ReturnCode

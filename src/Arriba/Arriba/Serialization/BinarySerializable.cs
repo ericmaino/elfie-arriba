@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using Arriba.Diagnostics;
+using Arriba.Diagnostics.Tracing;
 
 namespace Arriba.Serialization
 {
@@ -15,6 +17,8 @@ namespace Arriba.Serialization
 
         private static string s_cachePath;
 
+        private static ILoggingContext _log = LoggingContextFactory.CreateDefaultLoggingContext();
+
         public static string CachePath
         {
             get
@@ -23,15 +27,14 @@ namespace Arriba.Serialization
                 // will then be a sibling of bin.
                 if (s_cachePath == null)
                 {
-                    s_cachePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"../../DiskCache");
-                    Trace.WriteLine($"Using Cache Path {s_cachePath}");
+                    CachePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"../../DiskCache");
                 }
 
                 return s_cachePath;
             }
             set
             {
-                Trace.WriteLine($"Setting Cache Path {value}");
+                _log.UsingCachePath(value);
                 s_cachePath = value;
             }
         }

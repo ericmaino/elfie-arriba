@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
 
@@ -15,13 +15,5 @@ namespace Arriba.Diagnostics.Tracing
         {
             Console.WriteLine(message, args);
         }
-
-        public static IDisposable EnableConsoleOutput()
-        {
-            var consolewriter = new TextWriterTraceListener(Console.Out);
-            Trace.Listeners.Add(consolewriter);
-            return consolewriter;
-        }
-
     }
 }

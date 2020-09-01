@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Arriba.Configuration;
+using Arriba.Diagnostics;
 using Arriba.Diagnostics.Tracing;
 using Arriba.Monitoring;
 using Microsoft.AspNetCore.Builder;
@@ -18,29 +19,30 @@ namespace Arriba.Server
     {
         private static async Task Main(string[] args)
         {
-            await ArribaProgram.Run<ArribaServer>(() =>
+            await new ArribaProgram()
+                .Run<ArribaServer>(async () => await RunArrbiaServer(args));
+        }
+
+
+        private static Task RunArrbiaServer(string[] args)
+        { 
+            var configLoader = new ArribaConfigurationLoader(args);
+
+            // Write trace messages to console if /trace is specified 
+            if (configLoader.GetBoolValue("trace", Debugger.IsAttached))
             {
-                ArribaLogs.WriteLine("Arriba Local Server\r\n");
+                EventPublisher.AddConsumer(new ConsoleEventConsumer());
+            }
 
-                var configLoader = new ArribaConfigurationLoader(args);
+            // Always log to CSV
+            EventPublisher.AddConsumer(new CsvEventConsumer());
 
-                // Write trace messages to console if /trace is specified 
-                if (configLoader.GetBoolValue("trace", Debugger.IsAttached))
-                {
-                    EventPublisher.AddConsumer(new ConsoleEventConsumer());
-                }
+            Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
 
-                // Always log to CSV
-                EventPublisher.AddConsumer(new CsvEventConsumer());
+            CreateHostBuilder(args).Build().Run();
 
-                Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
-
-                CreateHostBuilder(args).Build().Run();
-
-                ArribaLogs.WriteLine("Exiting.");
-                Environment.Exit(0);
-                return Task.CompletedTask;
-            });
+            Environment.Exit(0);
+            return Task.CompletedTask;
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args)
