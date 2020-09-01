@@ -55,7 +55,7 @@ namespace Arriba.Csv
 
         private static async Task<int> Main(string[] args)
         {
-            return await ArribaProgram.Run<ArribaCsv>(() =>
+            return await new ArribaProgram().Run<ArribaCsv>(() =>
             {
                 return Task.FromResult(RunArribaCSV(args));
             });
@@ -100,10 +100,10 @@ namespace Arriba.Csv
                             configLoader.GetIntValue("count", QueryResultLimit));
                         break;
                     case "getsettings":
-                        GetSettings(configLoader.GetStringValue("table"),configLoader.GetStringValue("path"));
+                        GetSettings(configLoader.GetStringValue("table"), configLoader.GetStringValue("path"));
                         break;
                     case "setsettings":
-                        SetSettings(configLoader.GetStringValue("table"),configLoader.GetStringValue("path"));
+                        SetSettings(configLoader.GetStringValue("table"), configLoader.GetStringValue("path"));
                         break;
                     case "setcreators":
                         SetTableCreators(configLoader.GetStringValue("users"));
@@ -226,195 +226,195 @@ namespace Arriba.Csv
             Console.WriteLine("Done in {0}.", w.Elapsed.ToFriendlyString());
         }
 
-        private static IEnumerable<DataBlock> ReadAsDataBlockBatch(ITabularReader reader, IList<string> columnNames)
+    private static IEnumerable<DataBlock> ReadAsDataBlockBatch(ITabularReader reader, IList<string> columnNames)
+    {
+        // Build a DataBlock to hold a batch of rows
+        int columnCount = columnNames.Count;
+        DataBlock result = new DataBlock(columnNames, BatchSize);
+        Value[][] columnArrays = new Value[columnCount][];
+        for (int i = 0; i < columnCount; ++i)
         {
-            // Build a DataBlock to hold a batch of rows
-            int columnCount = columnNames.Count;
-            DataBlock result = new DataBlock(columnNames, BatchSize);
-            Value[][] columnArrays = new Value[columnCount][];
-            for (int i = 0; i < columnCount; ++i)
+            columnArrays[i] = new Value[BatchSize];
+            for (int j = 0; j < BatchSize; ++j)
             {
-                columnArrays[i] = new Value[BatchSize];
-                for (int j = 0; j < BatchSize; ++j)
-                {
-                    columnArrays[i][j] = Value.Create(null);
-                }
-
-                result.SetColumn(i, columnArrays[i]);
+                columnArrays[i][j] = Value.Create(null);
             }
 
-            // Look up indices of the columns
-            int[] columnIndices = new int[columnCount];
-            for (int i = 0; i < columnCount; ++i)
-            {
-                columnIndices[i] = reader.ColumnIndex(columnNames[i]);
-            }
-
-            // Fill blocks with rows as we go
-            int currentRowCount = 0;
-            String8Block block = new String8Block();
-            while (reader.NextRow())
-            {
-                for (int i = 0; i < columnCount; ++i)
-                {
-                    String8 cell = block.GetCopy(reader.Current(columnIndices[i]).ToString8());
-                    columnArrays[i][currentRowCount].Assign(new ByteBlock(cell.Array, cell.Index, cell.Length));
-                    //columnArrays[i][currentRowCount].Assign(cell.ToString());
-                }
-
-                currentRowCount++;
-
-                if (currentRowCount == BatchSize)
-                {
-                    yield return result;
-                    currentRowCount = 0;
-                    block.Clear();
-                }
-            }
-
-            if (currentRowCount > 0) yield return result;
+            result.SetColumn(i, columnArrays[i]);
         }
 
-        private static void Query(string tableName, string columnsToSelect, string orderByColumn, int countToShow)
+        // Look up indices of the columns
+        int[] columnIndices = new int[columnCount];
+        for (int i = 0; i < columnCount; ++i)
         {
-            Console.WriteLine("Loading '{0}'...", tableName);
+            columnIndices[i] = reader.ColumnIndex(columnNames[i]);
+        }
 
-            Table table = new Table();
-            Stopwatch w = Stopwatch.StartNew();
-            table.Load(tableName);
-            w.Stop();
-            Console.WriteLine("Done. Loaded '{0}' ({1:n0} rows) in {2}.", tableName, table.Count, w.Elapsed.ToFriendlyString());
+        // Fill blocks with rows as we go
+        int currentRowCount = 0;
+        String8Block block = new String8Block();
+        while (reader.NextRow())
+        {
+            for (int i = 0; i < columnCount; ++i)
+            {
+                String8 cell = block.GetCopy(reader.Current(columnIndices[i]).ToString8());
+                columnArrays[i][currentRowCount].Assign(new ByteBlock(cell.Array, cell.Index, cell.Length));
+                //columnArrays[i][currentRowCount].Assign(cell.ToString());
+            }
 
-            Console.Write(" > ");
-            string query = Console.ReadLine();
+            currentRowCount++;
 
-            IEnumerable<string> selectList = SplitAndTrim(columnsToSelect);
-            if (selectList.Count() == 0) selectList = table.ColumnDetails.Select((cd) => cd.Name);
+            if (currentRowCount == BatchSize)
+            {
+                yield return result;
+                currentRowCount = 0;
+                block.Clear();
+            }
+        }
 
-            SelectQuery q = new SelectQuery(selectList, query);
-            if (!String.IsNullOrEmpty(orderByColumn)) q.OrderByColumn = orderByColumn;
-            q.Count = (countToShow < ushort.MaxValue ? (ushort)countToShow : ushort.MaxValue);
+        if (currentRowCount > 0) yield return result;
+    }
 
-            w = Stopwatch.StartNew();
-            SelectResult result = table.Query(q);
-            w.Stop();
+    private static void Query(string tableName, string columnsToSelect, string orderByColumn, int countToShow)
+    {
+        Console.WriteLine("Loading '{0}'...", tableName);
 
-            StringBuilder output = new StringBuilder();
+        Table table = new Table();
+        Stopwatch w = Stopwatch.StartNew();
+        table.Load(tableName);
+        w.Stop();
+        Console.WriteLine("Done. Loaded '{0}' ({1:n0} rows) in {2}.", tableName, table.Count, w.Elapsed.ToFriendlyString());
 
-            output.AppendFormat("{0:n0} results for \"{1}\" found in {2}.\r\n", result.Total, result.Query.Where.ToString(), w.Elapsed.ToFriendlyString());
-            output.AppendLine();
+        Console.Write(" > ");
+        string query = Console.ReadLine();
 
-            IList<ColumnDetails> columns = result.Values.Columns;
+        IEnumerable<string> selectList = SplitAndTrim(columnsToSelect);
+        if (selectList.Count() == 0) selectList = table.ColumnDetails.Select((cd) => cd.Name);
 
+        SelectQuery q = new SelectQuery(selectList, query);
+        if (!String.IsNullOrEmpty(orderByColumn)) q.OrderByColumn = orderByColumn;
+        q.Count = (countToShow < ushort.MaxValue ? (ushort)countToShow : ushort.MaxValue);
+
+        w = Stopwatch.StartNew();
+        SelectResult result = table.Query(q);
+        w.Stop();
+
+        StringBuilder output = new StringBuilder();
+
+        output.AppendFormat("{0:n0} results for \"{1}\" found in {2}.\r\n", result.Total, result.Query.Where.ToString(), w.Elapsed.ToFriendlyString());
+        output.AppendLine();
+
+        IList<ColumnDetails> columns = result.Values.Columns;
+
+        for (int columnIndex = 0; columnIndex < columns.Count; ++columnIndex)
+        {
+            if (columnIndex > 0) output.Append("\t");
+            output.Append(columns[columnIndex].Name);
+        }
+
+        output.AppendLine();
+
+        for (int rowIndex = 0; rowIndex < result.CountReturned; ++rowIndex)
+        {
             for (int columnIndex = 0; columnIndex < columns.Count; ++columnIndex)
             {
                 if (columnIndex > 0) output.Append("\t");
-                output.Append(columns[columnIndex].Name);
+                output.Append(result.Values[rowIndex, columnIndex]);
             }
 
             output.AppendLine();
-
-            for (int rowIndex = 0; rowIndex < result.CountReturned; ++rowIndex)
-            {
-                for (int columnIndex = 0; columnIndex < columns.Count; ++columnIndex)
-                {
-                    if (columnIndex > 0) output.Append("\t");
-                    output.Append(result.Values[rowIndex, columnIndex]);
-                }
-
-                output.AppendLine();
-            }
-
-            Console.WriteLine(output.ToString());
         }
 
-        private static CombinedSettings LoadSettings(string settingsJsonPath)
+        Console.WriteLine(output.ToString());
+    }
+
+    private static CombinedSettings LoadSettings(string settingsJsonPath)
+    {
+        string settingsJson = File.ReadAllText(settingsJsonPath);
+        return ArribaConvert.FromJson<CombinedSettings>(settingsJson);
+    }
+
+    private static void GetSettings(string tableName, string settingsJsonPath)
+    {
+        Console.WriteLine("Reading settings from '{0}' and writing to '{1}'...", tableName, settingsJsonPath);
+
+        CombinedSettings settings = new CombinedSettings();
+
+        SecureDatabase db = new SecureDatabase();
+        settings.Security = db.Security(tableName);
+
+        Table t = db[tableName];
+        settings.ItemCountLimit = t.PartitionCount * ushort.MaxValue;
+        settings.Schema = new List<ColumnDetails>(t.ColumnDetails);
+
+        string settingsJson = ArribaConvert.ToJson(settings);
+        File.WriteAllText(settingsJsonPath, settingsJson);
+    }
+
+    private static void SetSettings(string tableName, string settingsJsonPath)
+    {
+        Console.WriteLine("Applying settings from '{0}' to '{1}'...", settingsJsonPath, tableName);
+
+        // Read settings file
+        CombinedSettings settings = LoadSettings(settingsJsonPath);
+
+        // Create table, if required
+        SecureDatabase db = new SecureDatabase();
+        if (!db.TableExists(tableName))
         {
-            string settingsJson = File.ReadAllText(settingsJsonPath);
-            return ArribaConvert.FromJson<CombinedSettings>(settingsJson);
+            db.AddTable(tableName, settings.ItemCountLimit);
         }
 
-        private static void GetSettings(string tableName, string settingsJsonPath)
+        // Apply the settings
+        SetSettings(db[tableName], settings);
+    }
+
+    private static void SetTableCreators(string creators)
+    {
+        Console.WriteLine("Setting table creators...");
+
+        SecurityPermissions createPermissions = new SecurityPermissions();
+        foreach (string creator in creators.Split(';'))
         {
-            Console.WriteLine("Reading settings from '{0}' and writing to '{1}'...", tableName, settingsJsonPath);
+            string[] parts = creator.Split(':');
+            IdentityScope scope = parts[0].Equals("u", StringComparison.OrdinalIgnoreCase) ? IdentityScope.User : IdentityScope.Group;
+            createPermissions.Grant(new SecurityIdentity(scope, parts[1]), PermissionScope.Owner);
 
-            CombinedSettings settings = new CombinedSettings();
-
-            SecureDatabase db = new SecureDatabase();
-            settings.Security = db.Security(tableName);
-
-            Table t = db[tableName];
-            settings.ItemCountLimit = t.PartitionCount * ushort.MaxValue;
-            settings.Schema = new List<ColumnDetails>(t.ColumnDetails);
-
-            string settingsJson = ArribaConvert.ToJson(settings);
-            File.WriteAllText(settingsJsonPath, settingsJson);
+            Console.WriteLine($" - {scope} {parts[1]}");
         }
 
-        private static void SetSettings(string tableName, string settingsJsonPath)
+        // Create table, if required
+        SecureDatabase db = new SecureDatabase();
+        db.SetSecurity("", createPermissions);
+        db.SaveSecurity("");
+    }
+
+    private static void SetSettings(Table table, CombinedSettings settings)
+    {
+        // Set and write security
+        SecureDatabase db = new SecureDatabase();
+        db.SetSecurity(table.Name, settings.Security);
+        db.SaveSecurity(table.Name);
+
+        // Create/Modify columns
+        foreach (ColumnDetails cd in settings.Schema)
         {
-            Console.WriteLine("Applying settings from '{0}' to '{1}'...", settingsJsonPath, tableName);
-
-            // Read settings file
-            CombinedSettings settings = LoadSettings(settingsJsonPath);
-
-            // Create table, if required
-            SecureDatabase db = new SecureDatabase();
-            if (!db.TableExists(tableName))
-            {
-                db.AddTable(tableName, settings.ItemCountLimit);
-            }
-
-            // Apply the settings
-            SetSettings(db[tableName], settings);
-        }
-
-        private static void SetTableCreators(string creators)
-        {
-            Console.WriteLine("Setting table creators...");
-
-            SecurityPermissions createPermissions = new SecurityPermissions();
-            foreach (string creator in creators.Split(';'))
-            {
-                string[] parts = creator.Split(':');
-                IdentityScope scope = parts[0].Equals("u", StringComparison.OrdinalIgnoreCase) ? IdentityScope.User : IdentityScope.Group;
-                createPermissions.Grant(new SecurityIdentity(scope, parts[1]), PermissionScope.Owner);
-
-                Console.WriteLine($" - {scope} {parts[1]}");
-            }
-
-            // Create table, if required
-            SecureDatabase db = new SecureDatabase();
-            db.SetSecurity("", createPermissions);
-            db.SaveSecurity("");
-        }
-
-        private static void SetSettings(Table table, CombinedSettings settings)
-        {
-            // Set and write security
-            SecureDatabase db = new SecureDatabase();
-            db.SetSecurity(table.Name, settings.Security);
-            db.SaveSecurity(table.Name);
-
-            // Create/Modify columns
-            foreach (ColumnDetails cd in settings.Schema)
-            {
-                table.AddColumn(cd);
-            }
-        }
-
-        private static IList<string> SplitAndTrim(string commaDelimitedList)
-        {
-            if (String.IsNullOrEmpty(commaDelimitedList)) return new string[0];
-
-            List<string> result = new List<string>();
-            foreach (string value in commaDelimitedList.Split(','))
-            {
-                if (String.IsNullOrEmpty(value)) continue;
-                result.Add(value.Trim());
-            }
-
-            return result;
+            table.AddColumn(cd);
         }
     }
+
+    private static IList<string> SplitAndTrim(string commaDelimitedList)
+    {
+        if (String.IsNullOrEmpty(commaDelimitedList)) return new string[0];
+
+        List<string> result = new List<string>();
+        foreach (string value in commaDelimitedList.Split(','))
+        {
+            if (String.IsNullOrEmpty(value)) continue;
+            result.Add(value.Trim());
+        }
+
+        return result;
+    }
+}
 }

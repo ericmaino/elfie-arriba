@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Arriba.Diagnostics;
 using Arriba.ParametersCheckers;
 using System;
 
@@ -18,7 +19,7 @@ namespace Arriba.ItemConsumers
                 case "arribaclient":
                     return new ArribaClientIndexerItemConsumer(config, config.ArribaServiceUrl ?? "http://localhost:42784");
                 case "arribadirect":
-                    return new ArribaDirectIndexerItemConsumer(config);
+                    return new ArribaDirectIndexerItemConsumer(config, LoggingContextFactory.CreateDefaultLoggingContext());
                 case "csvwriter":
                     return new CsvWriterItemConsumer(config.ArribaTable, "Changed Date");
                 default:

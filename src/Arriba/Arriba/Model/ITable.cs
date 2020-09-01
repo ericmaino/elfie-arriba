@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Generic;
-
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model.Column;
 using Arriba.Model.Expressions;
 using Arriba.Model.Query;
@@ -10,7 +10,7 @@ using Arriba.Structures;
 
 namespace Arriba.Model
 {
-    public interface ITable
+    public interface ITable : IServiceIdentity
     {
         #region Column Operations
         /// <summary>

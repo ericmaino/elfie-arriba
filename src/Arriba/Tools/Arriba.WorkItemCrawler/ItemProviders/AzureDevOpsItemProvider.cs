@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.Model.Column;
 using Arriba.Structures;
@@ -16,13 +17,14 @@ namespace Arriba.ItemProviders
 {
     public class AzureDevOpsItemProvider : IItemProvider
     {
-        public AzureDevOpsItemProvider(CrawlerConfiguration config)
-            : this(config.ItemDatabaseName, config.ItemProject, config.AzPat, config.WorkItemTypes)
+        public AzureDevOpsItemProvider(CrawlerConfiguration config, ILoggingContext log)
+            : this(config.ItemDatabaseName, config.ItemProject, config.AzPat, log, config.WorkItemTypes)
         {
         }
 
-        public AzureDevOpsItemProvider(string organization, string project, string pat, IList<string> workitemTypes = null)
+        public AzureDevOpsItemProvider(string organization, string project, string pat, ILoggingContext log, IList<string> workitemTypes = null)
         {
+            _log = log;
             BaseUri = new Uri($"https://dev.azure.com/{organization}/{project}/");
             AnalyticsUri = new Uri($"https://analytics.dev.azure.com/{organization}/{project}/");
 
@@ -47,6 +49,8 @@ namespace Arriba.ItemProviders
         private string WorkItemConstraint { get; }
 
         private Lazy<Task<IList<ColumnDetails>>> Columns { get; }
+
+        private readonly ILoggingContext _log;
 
         public void Dispose()
         {
@@ -97,7 +101,8 @@ namespace Arriba.ItemProviders
                     catch (Exception ex)
                     {
                         result[itemIndex, fieldIndex] = null;
-                        Trace.WriteLine(string.Format("Error Getting '{0}' from item {1}. Skipping field. Detail: {2}", c.Name, item.Id, ex.ToString()));
+                        _log.ExceptionOnIndexing(c, item, ex);
+                        _log.SkipIndexingField(c, item);
                     }
 
                     fieldIndex++;
@@ -293,11 +298,19 @@ namespace Arriba.ItemProviders
         public T Value { get; set; }
     }
 
-    public class AzWorkItem
+    public class AzWorkItem : IItemIdentifier
     {
         public string Id { get; set; }
         public string Rev { get; set; }
         public IDictionary<string, JToken> Fields { get; set; }
+
+        public string FriendlyName
+        {
+            get
+            {
+                return $"{nameof(AzWorkItem)} ID: {Id} Rev {Rev}";
+            }
+        }
     }
 }
 
