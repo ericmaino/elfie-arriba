@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Query;
 using Arriba.Server.Authentication;
@@ -29,8 +30,8 @@ namespace Arriba.Server
         private const string DefaultFormat = "dictionary";
         private readonly IArribaQueryServices _service;
 
-        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, IArribaQueryServices queryServices)
-            : base(f, auth, securityConfiguration)
+        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, , IArribaQueryServices queryServices, ILoggingContext log)
+            : base(f, auth, securityConfiguration, log)
         {
             _service = queryServices;
 

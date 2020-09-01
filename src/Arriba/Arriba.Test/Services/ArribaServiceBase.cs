@@ -1,6 +1,7 @@
 using Arriba.Communication.Server.Application;
 using Arriba.Composition;
 using Arriba.Configuration;
+using Arriba.Diagnostics;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
@@ -9,6 +10,8 @@ using Arriba.Structures;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Security.Claims;
 using System.Security.Principal;
 

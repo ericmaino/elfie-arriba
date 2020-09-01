@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
 
@@ -15,8 +16,8 @@ namespace Arriba.Server.Application
 {
     internal class InspectApplication : ArribaApplication
     {
-        public InspectApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration)
-            : base(f, auth, securityConfiguration)
+        public InspectApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+            : base(f, auth, securityConfiguration, log)
         {
             this.Get("/inspect/memory", this.Memory);
             this.Get("/inspect/machine", this.Machine);
