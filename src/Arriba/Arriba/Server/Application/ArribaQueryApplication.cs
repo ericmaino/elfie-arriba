@@ -33,7 +33,7 @@ namespace Arriba.Server
     {
         private const string DefaultFormat = "dictionary";
 
-        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
             : base(f, auth, securityConfiguration, log)
         {
             // /table/foo?type=select

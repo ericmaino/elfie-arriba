@@ -28,7 +28,7 @@ namespace Arriba.Server
         private IArribaAuthorization _arribaAuthorization;
         private readonly ILoggingContext _log;
 
-        protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+        protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
         {
             ParamChecker.ThrowIfNull(factory, nameof(factory));
             ParamChecker.ThrowIfNull(claimsAuth, nameof(claimsAuth));
@@ -38,7 +38,7 @@ namespace Arriba.Server
             this.Database = factory.GetDatabase();
             _log = log.Initialize<ArribaApplication>();
 
-            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(this.Database, claimsAuth, securityConfiguration, _log);
+            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(this.Database, claimsAuth, securityConfiguration, log);
 
             // Cache correctors which aren't request specific
             // Cache the People table so that it isn't reloaded for every request.

@@ -26,7 +26,7 @@ namespace Arriba.Server.Application
     {
         private readonly IArribaManagementService _service;
 
-        public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth, IArribaManagementService managementService, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+        public ArribaTableRoutesApplication(DatabaseFactory f, ClaimsAuthenticationService auth, IArribaManagementService managementService, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
             : base(f, auth, securityConfiguration, log)
         {
             _service = managementService;

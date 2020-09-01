@@ -18,7 +18,7 @@ namespace Arriba.Controllers
         private readonly IArribaServerConfiguration _serverConfig;
         private readonly ILoggingContext _log;
 
-        public OAuthController(IOAuthConfig config, IArribaServerConfiguration serverConfig, ILoggingContext log)
+        public OAuthController(IOAuthConfig config, IArribaServerConfiguration serverConfig, ILoggingContextFactory log)
         {
             _log = log.Initialize<OAuthController>();
             _config = config;

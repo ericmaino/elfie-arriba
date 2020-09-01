@@ -26,7 +26,7 @@ namespace Arriba.Communication.Server.Application
             _securityConfiguration = securityConfiguration;
         }
 
-        public IArribaManagementService CreateArribaManagementService(ILoggingContext log, string userAliasCorrectorTable = "")
+        public IArribaManagementService CreateArribaManagementService(ILoggingContextFactory log, string userAliasCorrectorTable = "")
         {
             if (string.IsNullOrWhiteSpace(userAliasCorrectorTable))
                 userAliasCorrectorTable = Table_People;
