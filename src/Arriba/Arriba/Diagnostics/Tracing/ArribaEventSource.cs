@@ -23,7 +23,12 @@ namespace Arriba.Diagnostics.Tracing
         string FriendlyName { get; }
     }
 
-    public interface ILoggingContext
+    public interface ILoggingContextFactory
+    {
+        ILoggingContext Initialize<T>();
+    }
+
+    public interface ILoggingContext: ILoggingContextFactory
     {
         void ServiceStart<T>();
         void ServiceComplete<T>();
@@ -33,7 +38,6 @@ namespace Arriba.Diagnostics.Tracing
         void TableMiss(string tableName);
         void TableHit(string tableName);
         ISymmetricEvent TrackSave(IServiceIdentity service);
-        ILoggingContext Initialize<T>();
         ISymmetricEvent LoadTable(string tableName);
         IConsistencyEvent VerifyingTableConsistencyOnSave(IServiceIdentity table);
         IConsistencyEvent VerifyingTableConsistencyOnRead(IServiceIdentity table);

@@ -16,7 +16,7 @@ namespace Arriba.Server.Application
 {
     internal class InspectApplication : ArribaApplication
     {
-        public InspectApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+        public InspectApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
             : base(f, auth, securityConfiguration, log)
         {
             this.Get("/inspect/memory", this.Memory);
