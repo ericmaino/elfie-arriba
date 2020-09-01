@@ -21,7 +21,7 @@ namespace Arriba.Diagnostics
         private string LogFilePath { get; set; }
         private ILoggingContext Log { get; }
 
-        public DailyLogTraceListener(ILoggingContext log) 
+        public DailyLogTraceListener(ILoggingContextFactory log) 
             : this(GetDefaultLogFilePath())
         {
             Log = log.Initialize<DailyLogTraceListener>();

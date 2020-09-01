@@ -5,7 +5,7 @@ using Arriba.Model.Column;
 
 namespace Arriba.Diagnostics
 {
-    public class ConsoleLoggingContext : ILoggingContext
+    public class ConsoleLoggingContext : ILoggingContext, ILoggingContextFactory
     {
         public void DownloadItems(int count)
         {

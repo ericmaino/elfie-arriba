@@ -14,7 +14,7 @@ namespace Arriba.Server.Authorization
         public readonly IArribaAuthorization _authorization;
         public readonly ILoggingContext _log;
 
-        public ArribaAuthorizationGrantDecorator(SecureDatabase database, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+        public ArribaAuthorizationGrantDecorator(SecureDatabase database, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
         {
             _authorization = new ArribaAuthorization(database, claims);
             _securityConfiguration = securityConfiguration;

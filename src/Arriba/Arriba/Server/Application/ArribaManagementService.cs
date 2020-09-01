@@ -22,11 +22,11 @@ namespace Arriba.Communication.Server.Application
         private readonly ICorrector _correctors;
         private readonly ILoggingContext _log;
 
-        public ArribaManagementService(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+        public ArribaManagementService(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
         {
             _log = log.Initialize<ArribaManagementService>();
             _database = secureDatabase;
-            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration, log);
+            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration, _log);
             _correctors = composedCorrector;
         }
 

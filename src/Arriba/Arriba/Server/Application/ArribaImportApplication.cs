@@ -23,7 +23,7 @@ namespace Arriba.Server.Application
     {
         private const int BatchSize = 100;
 
-        public ArribaImportApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContext log)
+        public ArribaImportApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
             : base(f, auth, securityConfiguration, log)
         {
             // POST /table/foo?type=csv -- Import CSV data 
