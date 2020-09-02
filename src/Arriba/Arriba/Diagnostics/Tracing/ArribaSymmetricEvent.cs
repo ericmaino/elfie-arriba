@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Arriba.Diagnostics.Tracing;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
@@ -8,14 +9,14 @@ using System.Text.Json;
 
 namespace Arriba.Diagnostics.Tracing
 {
-    class ArribaSymmetricEvent<T> : EventSource, ISymmetricEvent where T: ISerializable
+    public class ArribaSymmetricEvent : EventSource, ISymmetricEvent
     {
         private bool disposedValue;
         private readonly Stopwatch sw = new Stopwatch();
         private string name = string.Empty;
-        private string eventPayload = string.Empty;
+        protected string eventPayload = string.Empty;
 
-        private void Initialize()
+        protected void Initialize()
         {
             if (name == string.Empty) name = "SymmetricEvent";
             sw.Start();
@@ -23,12 +24,42 @@ namespace Arriba.Diagnostics.Tracing
 
         public ArribaSymmetricEvent()
         {
-           Initialize();
+            Initialize();
         }
 
         public ArribaSymmetricEvent(string eventName)
         {
             name = eventName;
+            Initialize();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    WriteSymmetricEvent();
+                    sw.Stop();
+                }
+
+                disposedValue = true;
+                base.Dispose(disposing);
+            }
+        }
+
+        [Event(eventId: 1)]
+        protected void WriteSymmetricEvent()
+        {
+            WriteEvent(1, new { Name = name, TimeElapsed = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds), Payload = eventPayload });
+        }
+    }
+
+    public class ArribaSymmetricEvent<T> : ArribaSymmetricEvent where T : ISerializable
+    {
+        private bool disposedValue;
+        public ArribaSymmetricEvent()
+        {
             Initialize();
         }
 
@@ -42,22 +73,9 @@ namespace Arriba.Diagnostics.Tracing
         {
             if (!disposedValue)
             {
-                if (disposing)
-                {
-                    base.Dispose(disposing);
-                    WriteSymmetricEvent();
-                    sw.Stop();
-                }
-
                 disposedValue = true;
                 base.Dispose(disposing);
             }
-        }
-
-        [Event(eventId:1)]
-        void WriteSymmetricEvent()
-        {
-            WriteEvent(1, new { Name = name, TimeElapsed = TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds), Payload = eventPayload });
         }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics.Tracing;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using Arriba.Diagnostics.Tracing;
 using Arriba.Model.Column;
 
