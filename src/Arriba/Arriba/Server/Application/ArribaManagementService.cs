@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Security.Principal;
-using Arriba.Server.Authorization;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Correctors;
@@ -10,6 +10,7 @@ using Arriba.Model.Query;
 using Arriba.Model.Security;
 using Arriba.ParametersCheckers;
 using Arriba.Server.Authentication;
+using Arriba.Server.Authorization;
 using Arriba.Types;
 
 namespace Arriba.Communication.Server.Application
@@ -19,11 +20,13 @@ namespace Arriba.Communication.Server.Application
         private readonly SecureDatabase _database;
         private readonly IArribaAuthorization _arribaAuthorization;
         private readonly ICorrector _correctors;
+        private readonly ILoggingContext _log;
 
-        public ArribaManagementService(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
+        public ArribaManagementService(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
         {
+            _log = log.Initialize<ArribaManagementService>();
             _database = secureDatabase;
-            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration);
+            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration, _log);
             _correctors = composedCorrector;
         }
 

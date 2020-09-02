@@ -54,7 +54,7 @@ namespace Arriba.Communication
             if (detail != null)
             {
                 // Attempt to serialize  
-                detailValue = ArribaConvert.ToJson(detail);
+                //detailValue = ArribaConvert.ToJson(detail);
             }
 
             var evt = _eventSource.RaiseScope(level: level, entityType: type, entityIdentity: identity, name: name, detail: detailValue);

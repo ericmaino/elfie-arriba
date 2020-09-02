@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Correctors;
@@ -32,8 +33,8 @@ namespace Arriba.Server
     {
         private const string DefaultFormat = "dictionary";
 
-        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration)
-            : base(f, auth, securityConfiguration)
+        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
+            : base(f, auth, securityConfiguration, log)
         {
             // /table/foo?type=select
             this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.ValidateReadAccessAsync, this.Select);

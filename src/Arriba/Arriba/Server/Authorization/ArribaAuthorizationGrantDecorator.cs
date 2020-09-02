@@ -1,9 +1,9 @@
-﻿using Arriba.Configuration;
+﻿using System.Security.Principal;
+using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Security;
 using Arriba.Server.Authentication;
-using System.Diagnostics;
-using System.Security.Principal;
 
 namespace Arriba.Server.Authorization
 {
@@ -12,11 +12,13 @@ namespace Arriba.Server.Authorization
 
         public readonly ISecurityConfiguration _securityConfiguration;
         public readonly IArribaAuthorization _authorization;
+        public readonly ILoggingContext _log;
 
-        public ArribaAuthorizationGrantDecorator(SecureDatabase database, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
+        public ArribaAuthorizationGrantDecorator(SecureDatabase database, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
         {
             _authorization = new ArribaAuthorization(database, claims);
             _securityConfiguration = securityConfiguration;
+            _log = log.Initialize<ArribaAuthorizationGrantDecorator>();
         }
 
         private bool OverrideGrantedPermission(bool hasPermission)
@@ -24,7 +26,10 @@ namespace Arriba.Server.Authorization
             if (!_securityConfiguration.EnabledAuthentication)
             {
                 if (!hasPermission)
-                    Trace.WriteLine("Permission Granted due service configuration being disabled!");
+                {
+                    _log.TrackPermissionOverride();
+                }
+
                 return true;
             }
             return hasPermission;

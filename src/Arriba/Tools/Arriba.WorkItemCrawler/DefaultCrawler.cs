@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.ItemConsumers;
 using Arriba.ItemProviders;
@@ -14,7 +15,7 @@ using Arriba.Structures;
 
 namespace Arriba
 {
-    public class DefaultCrawler
+    public class DefaultCrawler : IServiceIdentity
     {
         // Use a large batch size to avoid many small writes followed by frequent Saves
         private const int BatchSize = 100;
@@ -31,13 +32,18 @@ namespace Arriba
 
         private IEnumerable<string> ColumnNames { get; set; }
 
-        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild)
+        private ILoggingContext Log { get; }
+
+        public string FriendlyServiceName => throw new NotImplementedException();
+
+        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild, ILoggingContext log)
         {
             ConfigurationName = configurationName;
             Configuration = config;
             Rebuild = rebuild;
 
             ColumnNames = columnNames;
+            Log = log;
         }
 
         public async Task Crawl(IItemProvider provider, IItemConsumer consumer)
@@ -59,7 +65,7 @@ namespace Arriba
                 DateTimeOffset now = DateTimeOffset.UtcNow;
                 lastChangedItemAppended = previousLastChangedItem;
 
-                Trace.WriteLine(string.Format("Last Updated item was updated at '{0}'...", previousLastChangedItem));
+                Log.LastItemReadOccuredAt(previousLastChangedItem);
 
                 // For clean crawl, get more than a day at a time until first items found
                 int intervalDays = (now - previousLastChangedItem).TotalDays > 365 ? 365 : 1;
@@ -70,7 +76,7 @@ namespace Arriba
                     end = start.AddDays(intervalDays);
 
                     // Find the set of items to retrieve
-                    Trace.WriteLine(string.Format("Identifying items changed between '{0}' and '{1}'...", start, end));
+                    Log.PerformIncrementalRead(start, end);
                     IList<ItemIdentity> itemsToGet = null;
                     itemsToGet = await provider.GetItemsChangedBetweenAsync(start, end);
 
@@ -91,7 +97,7 @@ namespace Arriba
                     if (sinceLastWrite == null) sinceLastWrite = Stopwatch.StartNew();
 
                     // Get the items in blocks in ascending order by Changed Date [restartability]
-                    Trace.WriteLine(string.Format("Downloading {0:n0} items...", itemsToGet.Count));
+                    Log.DownloadItems(itemsToGet.Count);
 
                     List<IList<ItemIdentity>> pages = new List<IList<ItemIdentity>>(itemsToGet.OrderBy(ii => ii.ChangedDate).Page(BatchSize));
 
@@ -119,7 +125,7 @@ namespace Arriba
                                     catch (Exception e)
                                     {
                                         exceptionCount++;
-                                        Trace.WriteLine(string.Format("Exception when fetching {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), string.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
+                                        Log.TrackExceptionOnRead(e, this);
                                         if (exceptionCount > 10) throw;
                                     }
                                 });
@@ -152,7 +158,7 @@ namespace Arriba
                                 catch (Exception e)
                                 {
                                     exceptionCount++;
-                                    Trace.WriteLine(string.Format("Exception when writing {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), string.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
+                                        Log.TrakExceptionOnWrite(e, this);
                                     if (exceptionCount > 10) throw;
                                 }
                             }
@@ -161,8 +167,6 @@ namespace Arriba
                             // Save table if enough time has elapsed
                             if (sinceLastWrite.Elapsed.TotalMinutes > WriteAfterMinutes)
                             {
-                                Console.WriteLine();
-
                                 try
                                 {
                                     Save(consumer, saveWatch, lastChangedItemAppended);
@@ -171,21 +175,20 @@ namespace Arriba
                                 catch (Exception e)
                                 {
                                     exceptionCount++;
-                                    Trace.WriteLine(string.Format("Exception saving {0} batch. Error: {1}", ConfigurationName, e.ToString()));
+                                    Log.TrackExceptionOnSave(e, this);
 
                                     if (exceptionCount > 10) throw;
                                 }
                             }
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            Trace.WriteLine(string.Format("Crawler Failed. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));
+                            Log.TrackFatalException(ex, this);
                             throw;
                         }
                     }
 
                     end = itemsToGet.Max(x => x.ChangedDate).AddSeconds(1);
-                    Console.WriteLine();
                 }
             }
             finally
@@ -208,8 +211,6 @@ namespace Arriba
                     consumer.Dispose();
                     consumer = null;
                 }
-
-                Console.WriteLine();
 
                 // Old tracing logic
                 Trace.WriteLine(string.Format("Crawler Done. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));

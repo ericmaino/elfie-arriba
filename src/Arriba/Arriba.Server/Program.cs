@@ -1,23 +1,31 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Arriba.Configuration;
+using Arriba.Diagnostics;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Monitoring;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Diagnostics;
 using AspNetHost = Microsoft.Extensions.Hosting.Host;
 
 namespace Arriba.Server
 {
-    internal class Program
+    internal class ArribaServer
     {
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
-            Console.WriteLine("Arriba Local Server\r\n");
+            await new ArribaProgram()
+                .Run<ArribaServer>(async () => await RunArrbiaServer(args));
+        }
 
+
+        private static Task RunArrbiaServer(string[] args)
+        { 
             var configLoader = new ArribaConfigurationLoader(args);
 
             // Write trace messages to console if /trace is specified 
@@ -33,8 +41,8 @@ namespace Arriba.Server
 
             CreateHostBuilder(args).Build().Run();
 
-            Console.WriteLine("Exiting.");
             Environment.Exit(0);
+            return Task.CompletedTask;
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args)
@@ -47,4 +55,3 @@ namespace Arriba.Server
         }
     }
 }
-
