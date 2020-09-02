@@ -89,12 +89,12 @@ namespace Arriba.Diagnostics
             throw new NotImplementedException();
         }
 
-        public void TrackExceptionOnRead(Exception e, IServiceIdentity id)
+        public void TrackExceptionOnRead(Exception e, IServiceIdentifier id)
         {
             throw new NotImplementedException();
         }
 
-        public void TrackExceptionOnSave(Exception e, IServiceIdentity id)
+        public void TrackExceptionOnSave(Exception e, IServiceIdentifier id)
         {
             throw new NotImplementedException();
         }
@@ -108,7 +108,7 @@ namespace Arriba.Diagnostics
             return new ArribaSymmetricEvent(name);
         }
 
-        public void TrackFatalException(Exception ex, IServiceIdentity id)
+        public void TrackFatalException(Exception ex, IServiceIdentifier id)
         {
             throw new NotImplementedException();
         }
@@ -118,12 +118,12 @@ namespace Arriba.Diagnostics
             throw new NotImplementedException();
         }
 
-        public ISymmetricEvent TrackSave(IServiceIdentity service)
+        public ISymmetricEvent TrackSave(IServiceIdentifier service)
         {
             throw new NotImplementedException();
         }
 
-        public void TrakExceptionOnWrite(Exception e, IServiceIdentity id)
+        public void TrakExceptionOnWrite(Exception e, IServiceIdentifier id)
         {
             throw new NotImplementedException();
         }
@@ -133,12 +133,12 @@ namespace Arriba.Diagnostics
             throw new NotImplementedException();
         }
 
-        public IConsistencyEvent VerifyingTableConsistencyOnRead(IServiceIdentity table)
+        public IConsistencyEvent VerifyingTableConsistencyOnRead(IServiceIdentifier table)
         {
             throw new NotImplementedException();
         }
 
-        public IConsistencyEvent VerifyingTableConsistencyOnSave(IServiceIdentity table)
+        public IConsistencyEvent VerifyingTableConsistencyOnSave(IServiceIdentifier table)
         {
             throw new NotImplementedException();
         }

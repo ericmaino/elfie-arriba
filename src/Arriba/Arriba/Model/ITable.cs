@@ -10,7 +10,7 @@ using Arriba.Structures;
 
 namespace Arriba.Model
 {
-    public interface ITable : IServiceIdentity
+    public interface ITable : IServiceIdentifier
     {
         #region Column Operations
         /// <summary>

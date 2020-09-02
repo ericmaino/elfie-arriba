@@ -15,7 +15,7 @@ using Arriba.Structures;
 
 namespace Arriba
 {
-    public class DefaultCrawler : IServiceIdentity
+    public class DefaultCrawler : IServiceIdentifier
     {
         // Use a large batch size to avoid many small writes followed by frequent Saves
         private const int BatchSize = 100;

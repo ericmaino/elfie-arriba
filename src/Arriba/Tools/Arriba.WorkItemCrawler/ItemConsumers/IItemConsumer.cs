@@ -10,7 +10,7 @@ using Arriba.Structures;
 
 namespace Arriba.ItemConsumers
 {
-    public interface IItemConsumer : IDisposable, IServiceIdentity
+    public interface IItemConsumer : IDisposable, IServiceIdentifier
     {
         /// <summary>
         ///  Create a table with the given columns and permisssions.

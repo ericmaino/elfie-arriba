@@ -304,7 +304,7 @@ namespace Arriba.ItemProviders
         public string Rev { get; set; }
         public IDictionary<string, JToken> Fields { get; set; }
 
-        public string FriendlyName
+        public string FriendlyItemName
         {
             get
             {
