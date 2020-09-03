@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using Arriba.Caching;
 using Arriba.Client.Serialization.Json;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Communication.ContentTypes;
@@ -28,6 +29,7 @@ namespace Arriba.Composition
     {
         public static void AddArribaServices(this IServiceCollection services, ISecurityConfiguration config)
         {
+            services.AddSingleton<ArribaLogs>();
             services.AddSingleton<ISecurityConfiguration>(config);
          
             services.AddContentReadersWriters();

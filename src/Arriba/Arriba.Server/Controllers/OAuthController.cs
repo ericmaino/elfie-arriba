@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -15,12 +16,13 @@ namespace Arriba.Controllers
         private readonly IOAuthConfig _config;
         private readonly HttpClient _http;
         private readonly IArribaServerConfiguration _serverConfig;
-
-        public OAuthController(IOAuthConfig config, IArribaServerConfiguration serverConfig)
+        private  ArribaLogs _logs;
+        public OAuthController(IOAuthConfig config, IArribaServerConfiguration serverConfig, ArribaLogs arribaLogs)
         {
             _config = config;
             _serverConfig = serverConfig;
             _http = new HttpClient();
+            _logs = arribaLogs;
         }
 
         [HttpGet]
@@ -92,7 +94,7 @@ namespace Arriba.Controllers
             var response = await _http.PostAsync(uri, content);
             var result = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine($"ReadTokenResultAsync result: {result}");
+            _logs.WriteLine($"ReadTokenResultAsync result: {result}");
 
             response.EnsureSuccessStatusCode();
             oAuthToken = ArribaConvert.FromJson<OAuthTokenResult>(result);
