@@ -10,14 +10,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Arriba.Controllers
 {
-    [Route("/api/[controller]")]
+    [Route("/api/Arriba")]
     [ApiController]
     [ArribaResultFilter]
-    public class ArribaController : ControllerBase
+    public class ArribaManagementController : ControllerBase
     {
         private readonly IArribaManagementService _arribaManagement;
 
-        public ArribaController(IArribaManagementService arribaManagement)
+        public ArribaManagementController(IArribaManagementService arribaManagement)
         {
             _arribaManagement = arribaManagement;
         }

@@ -14,6 +14,7 @@ using Arriba.Communication.Server.Application;
 using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Correctors;
+using Arriba.Monitoring;
 using Arriba.Serialization.Json;
 using Arriba.Server;
 using Arriba.Server.Application;
@@ -35,6 +36,7 @@ namespace Arriba.Composition
 
             services.AddSingleton<ClaimsAuthenticationService>();
             services.AddSingleton<IArribaManagementService, ArribaManagementService>();
+            services.AddSingleton<ITelemetry>((_) => new Telemetry(MonitorEventLevel.Verbose, "HTTP", null));
             services.AddSingleton<IArribaQueryServices, ArribaQueryServices>();
             services.AddSingleton<IObjectCacheFactory, MemoryCacheFactory>();
             services.AddSingleton<SecureDatabase>();

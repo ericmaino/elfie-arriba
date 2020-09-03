@@ -13,7 +13,8 @@ namespace Arriba.Filters
 
         public override void OnResultExecuting(ResultExecutingContext context)
         {
-            if (context.Controller is ArribaController)
+            if (context.Controller is ArribaManagementController ||
+                context.Controller is ArribaQueryController)
             {
                 var currentResult = context.Result as ObjectResult;
                 if (currentResult != null)
