@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading.Tasks;
@@ -11,17 +12,16 @@ using Arriba.Communication;
 using Arriba.Communication.Application;
 using Arriba.Configuration;
 using Arriba.Model;
-using Arriba.Model.Column;
-using Arriba.Model.Correctors;
-using Arriba.Model.Expressions;
 using Arriba.Model.Query;
-using Arriba.Model.Security;
-using Arriba.Monitoring;
-using Arriba.Serialization;
-using Arriba.Serialization.Csv;
 using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
+using System.Collections.Specialized;
+using Arriba.Communication.Server.Application;
 using Arriba.Structures;
+using Arriba.Serialization;
+using Arriba.Serialization.Csv;
+using Arriba.Model.Column;
+using System.Collections.Generic;
 
 namespace Arriba.Server
 {
@@ -31,21 +31,25 @@ namespace Arriba.Server
     public class ArribaQueryApplication : ArribaApplication
     {
         private const string DefaultFormat = "dictionary";
+        private readonly IArribaQueryServices _service;
+        private static readonly ActivitySource ArribaQueryApplicationSource = new ActivitySource(".Arriba.Server.ArribaQueryApplication");
 
-        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration)
+        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, IArribaQueryServices queryServices)
             : base(f, auth, securityConfiguration)
         {
+            _service = queryServices;
+
             // /table/foo?type=select
-            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.ValidateReadAccessAsync, this.Select);
-            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.ValidateReadAccessAsync, this.Select);
+            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.Select);
+            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "select")), this.Select);
 
             // /table/foo?type=distinct
-            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.ValidateReadAccessAsync, this.Distinct);
-            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.ValidateReadAccessAsync, this.Distinct);
+            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.Distinct);
+            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "distinct")), this.Distinct);
 
             // /table/foo?type=aggregate
-            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.ValidateReadAccessAsync, this.Aggregate);
-            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.ValidateReadAccessAsync, this.Aggregate);
+            this.GetAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.Aggregate);
+            this.PostAsync(new RouteSpecification("/table/:tableName", new UrlParameter("action", "aggregate")), this.Aggregate);
 
             this.GetAsync(new RouteSpecification("/allCount"), this.AllCount);
             this.GetAsync(new RouteSpecification("/suggest"), this.Suggest);
@@ -55,166 +59,37 @@ namespace Arriba.Server
         {
             string tableName = GetAndValidateTableName(route);
             var user = ctx.Request.User;
-
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to select from.");
-            }
-
-            string outputFormat = ctx.Request.ResourceParameters["fmt"];
-
             NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            SelectQuery query = SelectQueryFromRequest(this.Database, p);
-            query.TableName = tableName;
-
+            string outputFormat = ctx.Request.ResourceParameters["fmt"] ?? "";
+            string rssIURL = ctx.Request.ResourceParameters["iURL"] ?? "";
             Table table = this.Database[tableName];
-            SelectResult result = null;
 
-            // If no columns were requested or this is RSS, get only the ID column
-            if (query.Columns == null || query.Columns.Count == 0 || String.Equals(outputFormat, "rss", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                query.Columns = new string[] { table.IDColumn.Name };
-            }
+                var result = _service.QueryTableForUser(tableName, p, ctx, user);
+                var query = result.Query as SelectQuery;
 
-            // Read Joins, if passed
-            IQuery<SelectResult> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, p);
-
-            ICorrector correctors = this.CurrentCorrectors(user);
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                // Run server correctors
-                wrappedQuery.Correct(correctors);
-            }
-
-            using (ctx.Monitor(MonitorEventLevel.Information, "Select", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                // Run the query
-                result = this.Database.Query(wrappedQuery, (si) => this.IsInIdentity(ctx.Request.User, si));
-            }
-
-            // Canonicalize column names (if query successful)
-            if (result.Details.Succeeded)
-            {
-                query.Columns = result.Values.Columns.Select((cd) => cd.Name).ToArray();
-            }
-
-            // Format the result in the return format
-            switch ((outputFormat ?? "").ToLowerInvariant())
-            {
-                case "":
-                case "json":
-                    return ArribaResponse.Ok(result);
-                case "csv":
-                    return ToCsvResponse(result, $"{tableName}-{DateTime.Now:yyyyMMdd}.csv");
-                case "rss":
-                    return ToRssResponse(result, "", query.TableName + ": " + query.Where, ctx.Request.ResourceParameters["iURL"]);
-                default:
-                    throw new ArgumentException($"OutputFormat [fmt] passed, '{outputFormat}', was invalid.");
-            }
-        }
-
-        private SelectQuery SelectQueryFromRequest(Database db, NameValueCollection p)
-        {
-            SelectQuery query = new SelectQuery();
-
-            query.Where = SelectQuery.ParseWhere(p["q"]);
-            query.OrderByColumn = p["ob"];
-            query.Columns = ReadParameterSet(p, "c", "cols");
-
-            string take = p["t"];
-            if (!String.IsNullOrEmpty(take)) query.Count = UInt16.Parse(take);
-
-            string sortOrder = p["so"] ?? "";
-            switch (sortOrder.ToLowerInvariant())
-            {
-                case "":
-                case "asc":
-                    query.OrderByDescending = false;
-                    break;
-                case "desc":
-                    query.OrderByDescending = true;
-                    break;
-                default:
-                    throw new ArgumentException($"SortOrder [so] passed, '{sortOrder}' was not 'asc' or 'desc'.");
-            }
-
-            string highlightString = p["h"];
-            if (!String.IsNullOrEmpty(highlightString))
-            {
-                // Set the end highlight string to the start highlight string if it is not set. 
-                query.Highlighter = new Highlighter(highlightString, p["h2"] ?? highlightString);
-            }
-
-            return query;
-        }
-
-        /// <summary>
-        ///  Read a set of parameters into a List (C1=X&C2=Y&C3=Z) => { "X", "Y", "Z" }.
-        /// </summary>
-        /// <param name="request">IRequest to read from</param>
-        /// <param name="baseName">Parameter name before numbered suffix ('C' -> look for 'C1', 'C2', ...)</param>
-        /// <returns>List&lt;string&gt; containing values for the parameter set, if any are found, otherwise an empty list.</returns>
-        protected static List<string> ReadParameterSet(NameValueCollection parameters, string baseName)
-        {
-            List<string> result = new List<string>();
-
-            int i = 1;
-            while (true)
-            {
-                string value = parameters[baseName + i.ToString()];
-                if (String.IsNullOrEmpty(value)) break;
-
-                result.Add(value);
-                ++i;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        ///  Read a set of parameters into a List, allowing a single comma-delimited fallback value.
-        ///  (C1=X&C2=Y&C3=Z or Cols=X,Y,Z) => { "X", "Y", "Z" }
-        /// </summary>
-        /// <param name="request">IRequest to read from</param>
-        /// <param name="nameIfSeparate">Parameter name prefix if parameters are passed separately ('C' -> look for 'C1', 'C2', ...)</param>
-        /// <param name="nameIfDelimited">Parameter name if parameters are passed together comma delimited ('Cols')</param>
-        /// <returns>List&lt;string&gt; containing values for the parameter set, if any are found, otherwise an empty list.</returns>
-        protected static List<string> ReadParameterSet(NameValueCollection parameters, string nameIfSeparate, string nameIfDelimited)
-        {
-            List<string> result = ReadParameterSet(parameters, nameIfSeparate);
-
-            if (result.Count == 0)
-            {
-                string delimitedValue = parameters[nameIfDelimited];
-                if (!String.IsNullOrEmpty(delimitedValue))
+                // Format the result in the return format
+                switch ((outputFormat ?? "").ToLowerInvariant())
                 {
-                    result = new List<string>(delimitedValue.Split(','));
+                    case "":
+                    case "json":
+                        return ArribaResponse.Ok(result);
+                    case "csv":
+                        return ToCsvResponse(result, $"{tableName}-{DateTime.Now:yyyyMMdd}.csv");
+                    case "rss":
+                        // If output rss only the ID column
+                        query.Columns = new string[] { table.IDColumn.Name };
+                        return ToRssResponse(result, "", $"{query.TableName} : {query.Where}", rssIURL);
+                    default:
+                        throw new ArgumentException($"OutputFormat [fmt] passed, '{outputFormat}', was invalid.");
                 }
             }
-
-            return result;
-        }
-
-        private static IQuery<T> WrapInJoinQueryIfFound<T>(IQuery<T> primaryQuery, Database db, NameValueCollection p)
-        {
-            List<SelectQuery> joins = new List<SelectQuery>();
-
-            List<string> joinQueries = ReadParameterSet(p, "q");
-            List<string> joinTables = ReadParameterSet(p, "t");
-
-            for (int queryIndex = 0; queryIndex < Math.Min(joinQueries.Count, joinTables.Count); ++queryIndex)
+            catch (Exception ex)
             {
-                joins.Add(new SelectQuery() { Where = SelectQuery.ParseWhere(joinQueries[queryIndex]), TableName = joinTables[queryIndex] });
+                return ExceptionToArribaResponse(ex);
             }
 
-            if (joins.Count == 0)
-            {
-                return primaryQuery;
-            }
-            else
-            {
-                return new JoinQuery<T>(db, primaryQuery, joins);
-            }
         }
 
         private static IResponse ToCsvResponse(SelectResult result, string fileName)
@@ -318,192 +193,86 @@ namespace Arriba.Server
             }
         }
 
+
         private async Task<IResponse> AllCount(IRequestContext ctx, Route route)
         {
             NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
             var user = ctx.Request.User;
+            AllCountResult result;
 
-            string queryString = p["q"] ?? "";
-            AllCountResult result = new AllCountResult(queryString);
-
-            // Build a Count query
-            IQuery<AggregationResult> query = new AggregationQuery("count", null, queryString);
-
-            // Wrap in Joins, if found
-            query = WrapInJoinQueryIfFound(query, this.Database, p);
-
-            // Run server correctors
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "AllCount", detail: query.Where.ToString()))
+            try
             {
-                query.Correct(this.CurrentCorrectors(user));
+                result = _service.AllCountForUser(p, ctx, user);
             }
-
-            // Accumulate Results for each table
-            using (ctx.Monitor(MonitorEventLevel.Information, "AllCount", type: "AllCount", detail: query.Where.ToString()))
+            catch (Exception ex)
             {
-                IExpression defaultWhere = query.Where;
-
-                foreach (string tableName in this.Database.TableNames)
-                {
-                    if (this.HasTableAccess(tableName, user, PermissionScope.Reader))
-                    {
-                        query.TableName = tableName;
-                        query.Where = defaultWhere;
-
-                        AggregationResult tableCount = this.Database.Query(query, (si) => this.IsInIdentity(ctx.Request.User, si));
-
-                        if (!tableCount.Details.Succeeded || tableCount.Values == null)
-                        {
-                            result.ResultsPerTable.Add(new CountResult(tableName, 0, true, false));
-                        }
-                        else
-                        {
-                            result.ResultsPerTable.Add(new CountResult(tableName, (ulong)tableCount.Values[0, 0], true, tableCount.Details.Succeeded));
-                        }
-                    }
-                    else
-                    {
-                        result.ResultsPerTable.Add(new CountResult(tableName, 0, false, false));
-                    }
-                }
+                return ExceptionToArribaResponse(ex);
             }
-
-            // Sort results so that succeeding tables are first and are subsorted by count [descending]
-            result.ResultsPerTable.Sort((left, right) =>
-            {
-                int order = right.Succeeded.CompareTo(left.Succeeded);
-                if (order != 0) return order;
-
-                return right.Count.CompareTo(left.Count);
-            });
 
             return ArribaResponse.Ok(result);
         }
 
+        // According to https://github.com/open-telemetry/opentelemetry-dotnet/blob/master/examples/Console/TestRedis.cs
+        // if another activity was already started, it'll use it as a source, so this should use Server activity as a parent
         private async Task<IResponse> Suggest(IRequestContext ctx, Route route)
         {
-            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-
-            string query = p["q"];
-            string selectedTable = p["t"];
-            IPrincipal user = ctx.Request.User;
-
-            IntelliSenseResult result = null;
-
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Suggest", type: "Suggest", detail: query))
+            // You're supposed to put all the logic of your method in the using statement
+            using (var activity = ArribaQueryApplicationSource.StartActivity("Suggest"))
             {
-                // Get all available tables
-                List<Table> tables = new List<Table>();
-                foreach (string tableName in this.Database.TableNames)
-                {
-                    if (this.HasTableAccess(tableName, user, PermissionScope.Reader))
-                    {
-                        if (String.IsNullOrEmpty(selectedTable) || selectedTable.Equals(tableName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            tables.Add(this.Database[tableName]);
-                        }
-                    }
-                }
+                activity?.SetTag("Context", ctx);
+            }
 
-                // Get IntelliSense results and return
-                QueryIntelliSense qi = new QueryIntelliSense();
-                result = qi.GetIntelliSenseItems(query, tables);
+            NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
+            IPrincipal user = ctx.Request.User;
+            IntelliSenseResult result;
+
+            try
+            {
+                result = _service.IntelliSenseTableForUser(p, ctx, user);
+            }
+            catch (Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
             }
 
             return ArribaResponse.Ok(result);
-        }
-
-        private IResponse Query<T>(IRequestContext ctx, Route route, IQuery<T> query, NameValueCollection p)
-        {
-            IQuery<T> wrappedQuery = WrapInJoinQueryIfFound(query, this.Database, p);
-            var user = ctx.Request.User;
-
-            // Ensure the table exists and set it on the query
-            string tableName = GetAndValidateTableName(route);
-            if (!this.Database.TableExists(tableName))
-            {
-                return ArribaResponse.NotFound("Table not found to query.");
-            }
-
-            query.TableName = tableName;
-
-            // Correct the query with default correctors
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Correct", type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                query.Correct(this.CurrentCorrectors(user));
-            }
-
-            // Execute and return results for the query
-            using (ctx.Monitor(MonitorEventLevel.Information, query.GetType().Name, type: "Table", identity: tableName, detail: query.Where.ToString()))
-            {
-                T result = this.Database.Query(wrappedQuery, (si) => this.IsInIdentity(ctx.Request.User, si));
-                return ArribaResponse.Ok(result);
-            }
         }
 
         private async Task<IResponse> Aggregate(IRequestContext ctx, Route route)
         {
+            string tableName = GetAndValidateTableName(route);
+            var user = ctx.Request.User;
             NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            IQuery<AggregationResult> query = BuildAggregateFromContext(ctx, p);
-            return Query(ctx, route, query, p);
-        }
-
-        private AggregationQuery BuildAggregateFromContext(IRequestContext ctx, NameValueCollection p)
-        {
-            string aggregationFunction = p["a"] ?? "count";
-            string columnName = p["col"];
-            string queryString = p["q"];
-
-            AggregationQuery query = new AggregationQuery();
-            query.Aggregator = AggregationQuery.BuildAggregator(aggregationFunction);
-            query.AggregationColumns = String.IsNullOrEmpty(columnName) ? null : new string[] { columnName };
-
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
+            AggregationResult result;
+            try
             {
-                query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
+                result = _service.AggregateQueryTableForUser(tableName, p, ctx, user);
+            }
+            catch (Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
             }
 
-            for (char dimensionPrefix = 'd'; true; ++dimensionPrefix)
-            {
-                List<string> dimensionParts = ReadParameterSet(p, dimensionPrefix.ToString());
-                if (dimensionParts.Count == 0) break;
-
-                if (dimensionParts.Count == 1 && dimensionParts[0].EndsWith(">"))
-                {
-                    query.Dimensions.Add(new DistinctValueDimension(QueryParser.UnwrapColumnName(dimensionParts[0].TrimEnd('>'))));
-                }
-                else
-                {
-                    query.Dimensions.Add(new AggregationDimension("", dimensionParts));
-                }
-            }
-
-            return query;
+            return ArribaResponse.Ok(result);
         }
 
         private async Task<IResponse> Distinct(IRequestContext ctx, Route route)
         {
+            string tableName = GetAndValidateTableName(route);
+            var user = ctx.Request.User;
             NameValueCollection p = await ParametersFromQueryStringAndBody(ctx);
-            IQuery<DistinctResult> query = BuildDistinctFromContext(ctx, p);
-            return Query(ctx, route, query, p);
-        }
-
-        private DistinctQuery BuildDistinctFromContext(IRequestContext ctx, NameValueCollection p)
-        {
-            DistinctQueryTop query = new DistinctQueryTop();
-            query.Column = p["col"];
-            if (String.IsNullOrEmpty(query.Column)) throw new ArgumentException("Distinct Column [col] must be passed.");
-
-            string queryString = p["q"];
-            using (ctx.Monitor(MonitorEventLevel.Verbose, "Arriba.ParseQuery", String.IsNullOrEmpty(queryString) ? "<none>" : queryString))
+            DistinctResult result;
+            try
             {
-                query.Where = String.IsNullOrEmpty(queryString) ? new AllExpression() : SelectQuery.ParseWhere(queryString);
+                result = _service.DistinctQueryTableForUser(tableName, p, ctx, user);
+            }
+            catch (Exception ex)
+            {
+                return ExceptionToArribaResponse(ex);
             }
 
-            string take = p["t"];
-            if (!String.IsNullOrEmpty(take)) query.Count = UInt16.Parse(take);
-
-            return query;
+            return ArribaResponse.Ok(result);
         }
+
     }
 }

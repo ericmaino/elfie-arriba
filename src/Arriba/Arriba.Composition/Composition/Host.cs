@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
@@ -14,6 +14,7 @@ using Arriba.Communication.Server.Application;
 using Arriba.Configuration;
 using Arriba.Model;
 using Arriba.Model.Correctors;
+using Arriba.Monitoring;
 using Arriba.Serialization.Json;
 using Arriba.Server;
 using Arriba.Server.Application;
@@ -28,6 +29,8 @@ namespace Arriba.Composition
     {
         public static void AddArribaServices(this IServiceCollection services, ISecurityConfiguration config)
         {
+            ArribaServices.Initialize();
+
             services.AddSingleton<ISecurityConfiguration>(config);
          
             services.AddContentReadersWriters();
@@ -35,6 +38,8 @@ namespace Arriba.Composition
 
             services.AddSingleton<ClaimsAuthenticationService>();
             services.AddSingleton<IArribaManagementService, ArribaManagementService>();
+            services.AddSingleton<ITelemetry>((_) => new Telemetry(MonitorEventLevel.Verbose, "HTTP", null));
+            services.AddSingleton<IArribaQueryServices, ArribaQueryServices>();
             services.AddSingleton<IObjectCacheFactory, MemoryCacheFactory>();
             services.AddSingleton<SecureDatabase>();
             services.AddSingleton<DatabaseFactory>();

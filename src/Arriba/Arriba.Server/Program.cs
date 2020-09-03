@@ -9,14 +9,34 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Diagnostics;
 using AspNetHost = Microsoft.Extensions.Hosting.Host;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
+
 
 namespace Arriba.Server
 {
     internal class Program
     {
+        // Is this considered a static logger? Because it only exists in this context and isn't actually passed into 
+        // other methods
+        private static readonly ActivitySource OpenTelemetryActivitySource = new ActivitySource("Microsoft.Arriba.Server");
+
         private static void Main(string[] args)
         {
             Console.WriteLine("Arriba Local Server\r\n");
+            
+            using var tracerProvider = Sdk.CreateTracerProviderBuilder()
+                .AddSource("Microsoft.Arriba.Server")
+                .AddConsoleExporter()
+                .Build();
+
+            // I believe this using is supposed to wrap around all of your logic
+            using (var activity = OpenTelemetryActivitySource.StartActivity("Server"))
+            {
+                activity?.SetTag("foo", 1);
+                activity?.SetTag("bar", "Hello, World!");
+                activity?.SetTag("baz", new int[] { 1, 2, 3 });
+            }
 
             var configLoader = new ArribaConfigurationLoader(args);
 
