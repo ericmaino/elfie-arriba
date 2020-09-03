@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Arriba.Diagnostics;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.Structures;
 using Arriba.TfsWorkItemCrawler.ItemConsumers;
@@ -32,14 +33,17 @@ namespace Arriba.TfsWorkItemCrawler
         private bool Rebuild { get; set; }
 
         private IEnumerable<string> ColumnNames { get; set; }
+        private ArribaLogging _log;
 
-        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild)
+        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild, ArribaLogging log)
         {
+            _log = log;
             this.ConfigurationName = configurationName;
             this.Configuration = config;
             this.Rebuild = rebuild;
 
             this.ColumnNames = columnNames;
+        
         }
 
         public async Task Crawl(IItemProvider provider, IItemConsumer consumer)
@@ -163,7 +167,7 @@ namespace Arriba.TfsWorkItemCrawler
                             // Save table if enough time has elapsed
                             if (sinceLastWrite.Elapsed.TotalMinutes > WriteAfterMinutes)
                             {
-                                Console.WriteLine();
+                                _log.WriteLine();
 
                                 try
                                 {
@@ -187,7 +191,7 @@ namespace Arriba.TfsWorkItemCrawler
                     }
 
                     end = itemsToGet.Max(x => x.ChangedDate).AddSeconds(1);
-                    Console.WriteLine();
+                    _log.WriteLine();
                 }
             }
             finally
@@ -211,7 +215,7 @@ namespace Arriba.TfsWorkItemCrawler
                     consumer = null;
                 }
 
-                Console.WriteLine();
+                _log.WriteLine();
 
                 // Old tracing logic
                 Trace.WriteLine(String.Format("Crawler Done. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", this.ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));
