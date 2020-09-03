@@ -4,7 +4,7 @@ using System.Diagnostics.Tracing;
 
 namespace Arriba.Diagnostics.Tracing
 {
-    public class ArribaLogs
+    public class ArribaLog
     {
         public void WriteLine()
         {

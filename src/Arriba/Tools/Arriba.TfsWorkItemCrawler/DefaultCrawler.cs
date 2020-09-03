@@ -33,9 +33,9 @@ namespace Arriba.TfsWorkItemCrawler
         private bool Rebuild { get; set; }
 
         private IEnumerable<string> ColumnNames { get; set; }
-        private ArribaLogging _log;
+        private ArribaLog _log;
 
-        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild, ArribaLogging log)
+        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild, ArribaLog log)
         {
             _log = log;
             this.ConfigurationName = configurationName;

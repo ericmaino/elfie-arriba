@@ -16,13 +16,13 @@ namespace Arriba.Controllers
         private readonly IOAuthConfig _config;
         private readonly HttpClient _http;
         private readonly IArribaServerConfiguration _serverConfig;
-        private  ArribaLogs _logs;
-        public OAuthController(IOAuthConfig config, IArribaServerConfiguration serverConfig, ArribaLogs arribaLogs)
+        private  ArribaLog _log;
+        public OAuthController(IOAuthConfig config, IArribaServerConfiguration serverConfig, ArribaLog arribaLog)
         {
             _config = config;
             _serverConfig = serverConfig;
             _http = new HttpClient();
-            _logs = arribaLogs;
+            _log = arribaLog;
         }
 
         [HttpGet]
@@ -94,7 +94,7 @@ namespace Arriba.Controllers
             var response = await _http.PostAsync(uri, content);
             var result = await response.Content.ReadAsStringAsync();
 
-            _logs.WriteLine($"ReadTokenResultAsync result: {result}");
+            _log.WriteLine($"ReadTokenResultAsync result: {result}");
 
             response.EnsureSuccessStatusCode();
             oAuthToken = ArribaConvert.FromJson<OAuthTokenResult>(result);

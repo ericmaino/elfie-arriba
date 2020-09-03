@@ -31,8 +31,8 @@ namespace Arriba
         private bool Rebuild { get; set; }
 
         private IEnumerable<string> ColumnNames { get; set; }
-        private ArribaLogs _log;
-        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild, ArribaLogs log)
+        private ArribaLog _log;
+        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild, ArribaLog log)
         {
             _log = log;
             ConfigurationName = configurationName;
