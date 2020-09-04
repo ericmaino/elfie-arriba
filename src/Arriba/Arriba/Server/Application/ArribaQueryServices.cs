@@ -1,4 +1,5 @@
 ﻿using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model;
 using Arriba.Model.Correctors;
 using Arriba.Model.Expressions;
@@ -21,12 +22,14 @@ namespace Arriba.Communication.Server.Application
         private readonly SecureDatabase _database;
         private readonly IArribaAuthorization _arribaAuthorization;
         private readonly ICorrector _correctors;
+        private readonly ILoggingContextFactory _log;
 
-        public ArribaQueryServices(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
+        public ArribaQueryServices(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
         {
             _database = secureDatabase;
-            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration);
+            _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration, log);
             _correctors = composedCorrector;
+            _log = log;
         }
 
         private ICorrector CurrentCorrectors(IPrincipal user)

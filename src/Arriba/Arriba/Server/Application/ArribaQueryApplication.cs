@@ -30,7 +30,7 @@ namespace Arriba.Server
         private const string DefaultFormat = "dictionary";
         private readonly IArribaQueryServices _service;
 
-        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, ILoggingContextFactory log)
+        public ArribaQueryApplication(DatabaseFactory f, ClaimsAuthenticationService auth, ISecurityConfiguration securityConfiguration, IArribaQueryServices queryServices,  ILoggingContextFactory log)
             : base(f, auth, securityConfiguration, log)
         {
             _service = queryServices;
