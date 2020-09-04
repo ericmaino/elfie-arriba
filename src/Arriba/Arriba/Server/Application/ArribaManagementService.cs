@@ -15,7 +15,7 @@ using Arriba.Types;
 
 namespace Arriba.Communication.Server.Application
 {
-    public class ArribaManagementService : IArribaManagementService
+    public partial class ArribaManagementService : IArribaManagementService
     {
         private readonly SecureDatabase _database;
         private readonly IArribaAuthorization _arribaAuthorization;
@@ -65,6 +65,7 @@ namespace Arriba.Communication.Server.Application
 
             Table table = _database[tableName];
             table.AddColumns(columnDetails);
+
         }
 
         public TableInformation CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
@@ -95,6 +96,8 @@ namespace Arriba.Communication.Server.Application
             table.Save();
             _database.SaveSecurity(createTable.TableName);
 
+            OnRaiseCreatedUserTable(new TableContextEventArgs(table));
+
             return GetTableInformationForUser(createTable.TableName, user);
         }
 
@@ -107,6 +110,7 @@ namespace Arriba.Communication.Server.Application
                 throw new ArribaAccessForbiddenException("Operation not authorized");
 
             _database.DropTable(tableName);
+
         }
 
         public DeleteResult DeleteTableRowsForUser(string tableName, string query, IPrincipal user)
@@ -245,12 +249,17 @@ namespace Arriba.Communication.Server.Application
             Table table = _database[tableName];
 
             ExecutionDetails executionDetails = new ExecutionDetails();
-            table.VerifyConsistency(verificationLevel, executionDetails);
+            using (var symmEvent = _log.TrackExecutionTime(table))
+            {
+                table.VerifyConsistency(verificationLevel, executionDetails);
+            }
 
             if (executionDetails.Succeeded)
             {
                 table.Save();
                 tableSaved = true;
+
+                OnRaiseDeletedUserTable(new TableContextEventArgs(table));
             }
 
             return (tableSaved, executionDetails);
