@@ -16,11 +16,5 @@ namespace Arriba.Diagnostics.Tracing
             Console.WriteLine(message, args);
         }
 
-        public IDisposable EnableConsoleOutput()
-        {
-            var consolewriter = new TextWriterTraceListener(Console.Out);
-            Trace.Listeners.Add(consolewriter);
-            return consolewriter;
-        }
     }
 }
