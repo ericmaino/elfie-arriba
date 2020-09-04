@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Arriba.Composition;
 using Arriba.Configuration;
+using Arriba.Diagnostics.Tracing;
 using Arriba.ItemConsumers;
 using Arriba.ItemProviders;
 using Arriba.Model.Column;
@@ -71,7 +72,7 @@ namespace Arriba
                     consumer.CreateTable(columnsToAdd, config.LoadPermissions());
 
                     // Build a crawler and crawl the items in restartable order
-                    DefaultCrawler crawler = new DefaultCrawler(config, columnsToAdd.Select((cd) => cd.Name), configurationName, !mode.Equals("-i"));
+                    DefaultCrawler crawler = new DefaultCrawler(config, columnsToAdd.Select((cd) => cd.Name), configurationName, !mode.Equals("-i"), new ArribaLog());
                     await crawler.Crawl(provider, consumer);
 
                     return 0;

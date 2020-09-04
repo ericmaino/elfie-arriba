@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 
 using Arriba.Extensions;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model.Expressions;
 
 namespace Arriba.Model.Query
@@ -37,7 +38,7 @@ namespace Arriba.Model.Query
 
         private QueryParser(TextReader reader)
         {
-            _scanner = new QueryScanner(reader);
+            _scanner = new QueryScanner(reader, new ArribaLog());
             _scanner.Next();
         }
 

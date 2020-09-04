@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using Arriba.Model.Query;
-
+using Arriba.Diagnostics.Tracing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Arriba.Test.Model
@@ -27,7 +27,7 @@ namespace Arriba.Test.Model
 
         private static List<Token> Tokenize(string value)
         {
-            QueryScanner scanner = new QueryScanner(new StringReader(value));
+            QueryScanner scanner = new QueryScanner(new StringReader(value), new ArribaLog());
 
             List<Token> tokens = new List<Token>();
             while (scanner.Next())

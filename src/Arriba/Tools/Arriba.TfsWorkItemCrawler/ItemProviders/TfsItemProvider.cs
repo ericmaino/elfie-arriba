@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Arriba.Extensions;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Model.Column;
 using Arriba.Structures;
 
@@ -34,9 +35,11 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
 
         private JsonSerializerSettings SerializerSettings { get; set; }
         private WorkItemStore Store { get; set; }
-
-        public TfsItemProvider(CrawlerConfiguration config)
+        private readonly ArribaLog _log;
+        public TfsItemProvider(CrawlerConfiguration config, ArribaLog log)
         {
+            _log = log;
+
             this.DatabaseUri = config.ItemDatabaseName;
             this.Query = config.ItemQuery ?? DefaultQuery;
             this.ColumnMappings = config.ColumnMappings;
@@ -54,7 +57,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             {
                 case "aad":
                     // https://www.visualstudio.com/en-us/docs/setup-admin/team-services/manage-organization-access-for-your-account-vs
-                    Trace.WriteLine(string.Format("Connecting to '{0}' [AAD]...", this.DatabaseUri));
+                    _log.WriteLine(string.Format("Connecting to '{0}' [AAD]...", this.DatabaseUri));
                     this.Store = new WorkItemStore(new TfsTeamProjectCollection(new Uri(this.DatabaseUri), new VssAadCredential()));
                     break;
                 // Deprecated, but works.
@@ -71,7 +74,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                 //    break;
                 case "integrated":
                 case "":
-                    Trace.WriteLine(string.Format("Connecting to '{0}' [Integrated Auth]...", this.DatabaseUri));
+                    _log.WriteLine(string.Format("Connecting to '{0}' [Integrated Auth]...", this.DatabaseUri));
                     this.Store = new WorkItemStore(this.DatabaseUri);
                     break;
                 default:
@@ -220,7 +223,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                     currentIntervalSize = new TimeSpan(currentIntervalSize.Ticks / 2);
                     if (currentIntervalSize.TotalMinutes < 1) throw new InvalidOperationException("Unable to crawl from TFS successfully even with only a one minute interval. Stopping.");
 
-                    Trace.WriteLine(string.Format("TFS couldn't return items between {0} and {1}. Shortening interval to {2}.", lastLoaded.ToString("u"), nextToLoad.ToString("u"), currentIntervalSize.ToFriendlyString()));
+                    _log.WriteLine(string.Format("TFS couldn't return items between {0} and {1}. Shortening interval to {2}.", lastLoaded.ToString("u"), nextToLoad.ToString("u"), currentIntervalSize.ToFriendlyString()));
                 }
             }
 
@@ -321,7 +324,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
                     catch (Exception ex)
                     {
                         result[itemIndex, fieldIndex] = null;
-                        Trace.WriteLine(String.Format("Error Getting '{0}' from item {1}. Skipping field. Detail: {2}", columnName, item.Id, ex.ToString()));
+                        _log.WriteLine(String.Format("Error Getting '{0}' from item {1}. Skipping field. Detail: {2}", columnName, item.Id, ex.ToString()));
                     }
 
                     fieldIndex++;
