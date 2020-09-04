@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Arriba.Diagnostics.Tracing;
 
 namespace Arriba.Model.Query
 {
@@ -82,6 +83,8 @@ namespace Arriba.Model.Query
     /// </summary>
     internal class QueryScanner
     {
+        private readonly ArribaLog _log;
+
         /// <summary>
         ///  Constant values for literal tokens.
         ///  IMPORTANT: Must be in descending length order.
@@ -173,8 +176,9 @@ namespace Arriba.Model.Query
         ///  Create a new Scanner to read the given Html source document.
         /// </summary>
         /// <param name="reader">Reader from which to read</param>
-        public QueryScanner(TextReader reader)
+        public QueryScanner(TextReader reader, ArribaLog log)
         {
+            _log = log;
             this.Text = reader.ReadToEnd();
             this.CurrentIndex = 0;
 
@@ -257,7 +261,7 @@ namespace Arriba.Model.Query
         /// <param name="warning">Warning message indicating the problem</param>
         public void Warn(string caller, string warning)
         {
-            Console.WriteLine("Parse Warning (Index {0}, Parsing {1}): {2}", CurrentIndex, caller, warning);
+            _log.WriteLine("Parse Warning (Index {0}, Parsing {1}): {2}", CurrentIndex, caller, warning);
         }
 
         /// <summary>

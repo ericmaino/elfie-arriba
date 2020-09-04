@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Arriba.Diagnostics;
+using Arriba.Diagnostics.Tracing;
 using Arriba.Extensions;
 using Arriba.Structures;
 using Arriba.TfsWorkItemCrawler.ItemConsumers;
@@ -32,14 +33,17 @@ namespace Arriba.TfsWorkItemCrawler
         private bool Rebuild { get; set; }
 
         private IEnumerable<string> ColumnNames { get; set; }
+        private readonly ArribaLog _log;
 
-        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild)
+        public DefaultCrawler(CrawlerConfiguration config, IEnumerable<string> columnNames, string configurationName, bool rebuild, ArribaLog log)
         {
+            _log = log;
             this.ConfigurationName = configurationName;
             this.Configuration = config;
             this.Rebuild = rebuild;
 
             this.ColumnNames = columnNames;
+        
         }
 
         public async Task Crawl(IItemProvider provider, IItemConsumer consumer)
@@ -61,7 +65,7 @@ namespace Arriba.TfsWorkItemCrawler
                 DateTimeOffset now = DateTimeOffset.UtcNow;
                 lastChangedItemAppended = previousLastChangedItem;
 
-                Trace.WriteLine(string.Format("Last Updated item was updated at '{0}'...", previousLastChangedItem));
+                _log.WriteLine(string.Format("Last Updated item was updated at '{0}'...", previousLastChangedItem));
 
                 // For clean crawl, get more than a day at a time until first items found
                 int intervalDays = ((now - previousLastChangedItem).TotalDays > 365 ? 365 : 1);
@@ -72,7 +76,7 @@ namespace Arriba.TfsWorkItemCrawler
                     end = start.AddDays(intervalDays);
 
                     // Find the set of items to retrieve
-                    Trace.WriteLine(string.Format("Identifying items changed between '{0}' and '{1}'...", start, end));
+                    _log.WriteLine(string.Format("Identifying items changed between '{0}' and '{1}'...", start, end));
                     IList<ItemIdentity> itemsToGet = null;
                     itemsToGet = await provider.GetItemsChangedBetweenAsync(start, end);
 
@@ -93,7 +97,7 @@ namespace Arriba.TfsWorkItemCrawler
                     if (sinceLastWrite == null) sinceLastWrite = Stopwatch.StartNew();
 
                     // Get the items in blocks in ascending order by Changed Date [restartability]
-                    Trace.WriteLine(string.Format("Downloading {0:n0} items...", itemsToGet.Count));
+                    _log.WriteLine(string.Format("Downloading {0:n0} items...", itemsToGet.Count));
 
                     List<IList<ItemIdentity>> pages = new List<IList<ItemIdentity>>(itemsToGet.OrderBy(ii => ii.ChangedDate).Page(BatchSize));
 
@@ -121,7 +125,7 @@ namespace Arriba.TfsWorkItemCrawler
                                     catch (Exception e)
                                     {
                                         exceptionCount++;
-                                        Trace.WriteLine(string.Format("Exception when fetching {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), String.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
+                                        _log.WriteLine(string.Format("Exception when fetching {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), String.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
                                         if (exceptionCount > 10) throw;
                                     }
                                 });
@@ -154,7 +158,7 @@ namespace Arriba.TfsWorkItemCrawler
                                 catch (Exception e)
                                 {
                                     exceptionCount++;
-                                    Trace.WriteLine(string.Format("Exception when writing {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), String.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
+                                    _log.WriteLine(string.Format("Exception when writing {0} items. Error: {1}\r\nItem IDs: {2}", ConfigurationName, e.ToString(), String.Join(", ", pages[nextPageIndex + relativeIndex].Select(r => r.ID))));
                                     if (exceptionCount > 10) throw;
                                 }
                             }
@@ -163,7 +167,7 @@ namespace Arriba.TfsWorkItemCrawler
                             // Save table if enough time has elapsed
                             if (sinceLastWrite.Elapsed.TotalMinutes > WriteAfterMinutes)
                             {
-                                Console.WriteLine();
+                                _log.WriteLine();
 
                                 try
                                 {
@@ -173,7 +177,7 @@ namespace Arriba.TfsWorkItemCrawler
                                 catch (Exception e)
                                 {
                                     exceptionCount++;
-                                    Trace.WriteLine(string.Format("Exception saving {0} batch. Error: {1}", ConfigurationName, e.ToString()));
+                                    _log.WriteLine(string.Format("Exception saving {0} batch. Error: {1}", ConfigurationName, e.ToString()));
 
                                     if (exceptionCount > 10) throw;
                                 }
@@ -181,13 +185,13 @@ namespace Arriba.TfsWorkItemCrawler
                         }
                         catch (Exception)
                         {
-                            Trace.WriteLine(String.Format("Crawler Failed. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", this.ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));
+                            _log.WriteLine(String.Format("Crawler Failed. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", this.ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));
                             throw;
                         }
                     }
 
                     end = itemsToGet.Max(x => x.ChangedDate).AddSeconds(1);
-                    Console.WriteLine();
+                    _log.WriteLine();
                 }
             }
             finally
@@ -211,21 +215,21 @@ namespace Arriba.TfsWorkItemCrawler
                     consumer = null;
                 }
 
-                Console.WriteLine();
+                _log.WriteLine();
 
                 // Old tracing logic
-                Trace.WriteLine(String.Format("Crawler Done. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", this.ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));
+                _log.WriteLine(String.Format("Crawler Done. At {1:u}, {2:n0} items, {3} read, {4} write, {5} save for '{0}'.", this.ConfigurationName, DateTime.Now, itemCount, readWatch.Elapsed.ToFriendlyString(), writeWatch.Elapsed.ToFriendlyString(), saveWatch.Elapsed.ToFriendlyString()));
             }
         }
 
         private void Save(IItemConsumer consumer, Stopwatch saveWatch, DateTimeOffset lastCutoffWritten)
         {
             // Save the data itself
-            Trace.WriteLine("Saving...");
+            _log.WriteLine("Saving...");
             saveWatch.Start();
             consumer.Save();
             saveWatch.Stop();
-            Trace.WriteLine("Save Complete.");
+            _log.WriteLine("Save Complete.");
 
             // Record the new last cutoff written
             ItemProviderUtilities.SaveLastCutoff(this.Configuration.ArribaTable, this.ConfigurationName, lastCutoffWritten);
