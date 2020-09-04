@@ -6,6 +6,7 @@ using System.Text;
 namespace Arriba.TfsWorkItemCrawler.ItemProviders
 {
     using Arriba.Extensions;
+    using Arriba.Diagnostics.Tracing;
     using Arriba.Serialization;
     using System;
 
@@ -22,7 +23,7 @@ namespace Arriba.TfsWorkItemCrawler.ItemProviders
             {
                 case "":
                 case "tfsitemprovider":
-                    return new TfsItemProvider(config);
+                    return new TfsItemProvider(config, new ArribaLog());
                 default:
                     throw new InvalidOperationException(String.Format("{0} is an unknown Item Provider", config.ItemProvider));
             }

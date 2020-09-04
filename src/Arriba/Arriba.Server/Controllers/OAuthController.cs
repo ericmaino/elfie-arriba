@@ -16,7 +16,7 @@ namespace Arriba.Controllers
         private readonly IOAuthConfig _config;
         private readonly HttpClient _http;
         private readonly IArribaServerConfiguration _serverConfig;
-        private  ArribaLog _log;
+        private  readonly ArribaLog _log;
         public OAuthController(IOAuthConfig config, IArribaServerConfiguration serverConfig, ArribaLog arribaLog)
         {
             _config = config;
