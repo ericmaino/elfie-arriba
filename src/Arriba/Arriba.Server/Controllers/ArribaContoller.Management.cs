@@ -1,5 +1,4 @@
 ﻿using Arriba.Communication.Server.Application;
-using Arriba.Filters;
 using Arriba.Model;
 using Arriba.Model.Column;
 using Arriba.Model.Security;
@@ -10,17 +9,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Arriba.Controllers
 {
-    [Route("/api/Arriba")]
-    [ApiController]
-    [ArribaResultFilter]
-    public class ArribaManagementController : ControllerBase
+    public partial class ArribaController
     {
-        private readonly IArribaManagementService _arribaManagement;
-
-        public ArribaManagementController(IArribaManagementService arribaManagement)
-        {
-            _arribaManagement = arribaManagement;
-        }
 
         [HttpGet]
         public IActionResult GetTables()
@@ -88,14 +78,10 @@ namespace Arriba.Controllers
             return Ok("Deleted");
         }
 
-        // {POST | GET} /table/foo?action=delete
-        [HttpPost("table/{tableName}")]
-        [HttpGet("table/{tableName}")]
-        public IActionResult PostDeleteTableRows(string tableName, [FromQuery, Required] string action, [FromQuery, Required] string q)
+        [HttpPost("table/{tableName}/deleterows")]
+        [HttpGet("table/{tableName}/deleterows")]
+        public IActionResult PostDeleteTableRows(string tableName, [FromQuery, Required] string q)
         {
-            if (action != "delete")
-                return BadRequest($"Action {action} not supported");
-
             var result = _arribaManagement.DeleteTableRowsForUser(tableName, q, this.User);
             return Ok(result.Count);
         }
