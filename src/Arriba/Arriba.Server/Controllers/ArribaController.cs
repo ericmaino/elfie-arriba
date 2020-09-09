@@ -1,6 +1,7 @@
 ﻿using Arriba.Communication.Server.Application;
 using Arriba.Filters;
 using Arriba.Monitoring;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Specialized;
@@ -13,6 +14,7 @@ namespace Arriba.Controllers
     [Route("api/Arriba")]
     [ApiController]
     [ArribaResultFilter]
+    [Authorize]
     public partial class ArribaController : ControllerBase
     {
         private readonly IArribaQueryServices _arribaQuery;

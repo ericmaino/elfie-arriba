@@ -74,9 +74,8 @@ namespace Arriba.Server
             app.UseRouting();
             app.UseCors();
             app.UseArribaExceptionMiddleware();
-
-            if (serverConfig.EnabledAuthentication)
-                app.UseAuthorization();
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
