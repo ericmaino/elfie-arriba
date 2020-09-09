@@ -11,6 +11,7 @@ using Arriba.Model.Security;
 using Arriba.ParametersCheckers;
 using Arriba.Server.Authentication;
 using Arriba.Types;
+using Arriba.Server.Hosting;
 
 namespace Arriba.Communication.Server.Application
 {
@@ -20,9 +21,9 @@ namespace Arriba.Communication.Server.Application
         private readonly IArribaAuthorization _arribaAuthorization;
         private readonly ICorrector _correctors;
 
-        public ArribaManagementService(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
+        public ArribaManagementService(DatabaseFactory databaseFactory, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
         {
-            _database = secureDatabase;
+            _database = databaseFactory.GetDatabase();
             _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration);
             _correctors = composedCorrector;
         }
