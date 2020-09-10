@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.Serialization;
 
+using Arriba.ParametersCheckers;
 using Arriba.Serialization;
 
 namespace Arriba.Model.Security
@@ -20,17 +21,10 @@ namespace Arriba.Model.Security
 
         public SecurityIdentity(IdentityScope type, string name)
         {
-            if (name == null)
-            {
-                throw new ArgumentNullException("name");
-            }
-            else if (name.Length == 0)
-            {
-                throw new ArgumentException("Name must not be empty", "name");
-            }
+            name.ThrowIfNullOrWhiteSpaced(nameof(name));
 
-            this.Scope = type;
-            this.Name = name.ToLowerInvariant();
+            Scope = type;
+            Name = name;
         }
 
         /// <summary>

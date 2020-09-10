@@ -51,10 +51,20 @@ namespace Arriba.Test.Model
         private void SecureSampleDB(SecureDatabase db)
         {
             SecurityPermissions security = db.Security(sampleTableName);
-            security.RestrictedColumns.Add(SecurityIdentity.Create(IdentityScope.Group, "G1"), new List<string>(new string[] { "SecretOwner" }));
-            security.RestrictedColumns.Add(SecurityIdentity.Create(IdentityScope.Group, "G2"), new List<string>(new string[] { "SecretPriority" }));
-            security.RowRestrictedUsers.Add(SecurityIdentity.Create(IdentityScope.Group, "G3"), "SecretPriority > 1");
-            security.RowRestrictedUsers.Add(SecurityIdentity.Create(IdentityScope.Group, "G4"), "SecretPriority > 2");
+            security.RestrictedColumns.Add(SecurityIdentity.Create(IdentityScope.Group, "g1"), new List<string>(new string[] { "SecretOwner" }));
+            security.RestrictedColumns.Add(SecurityIdentity.Create(IdentityScope.Group, "g2"), new List<string>(new string[] { "SecretPriority" }));
+            security.RowRestrictedUsers.Add(SecurityIdentity.Create(IdentityScope.Group, "g3"), "SecretPriority > 1");
+            security.RowRestrictedUsers.Add(SecurityIdentity.Create(IdentityScope.Group, "g4"), "SecretPriority > 2");
+        }
+
+
+        [DataTestMethod]
+        [DataRow(IdentityScope.Group, null)]
+        [DataRow(IdentityScope.User, "")]
+        [DataRow(IdentityScope.Group, " ")]
+        public void SecurityIdentity_InvalidName(IdentityScope scope, string name)
+        {
+            Assert.ThrowsException<ArgumentException>(() => SecurityIdentity.Create(scope, name));
         }
 
         [TestMethod]

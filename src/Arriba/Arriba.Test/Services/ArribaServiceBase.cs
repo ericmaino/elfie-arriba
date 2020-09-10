@@ -114,7 +114,7 @@ namespace Arriba.Test.Services
         private ClaimsPrincipal GetAuthenticatedUser(string userName, PermissionScope scope)
         {
             var identity = new ClaimsIdentity(new GenericIdentity(userName, AuthenticationType));
-            identity.AddClaim(new Claim(identity.RoleClaimType, scope.ToString().ToLower()));
+            identity.AddClaim(new Claim(identity.RoleClaimType, scope.ToString()));
             var user = new ClaimsPrincipal(identity);
 
             return user;

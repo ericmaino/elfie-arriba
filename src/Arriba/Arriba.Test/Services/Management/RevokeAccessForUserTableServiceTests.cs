@@ -1,4 +1,4 @@
-﻿using Arriba.Model.Security;
+using Arriba.Model.Security;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
@@ -22,14 +22,6 @@ namespace Arriba.Test.Services
         public void RevokeAccessForUserTableNameMissing(string tableName)
         {
             var identity = new SecurityIdentity(IdentityScope.Group, "table readers");
-            Assert.ThrowsException<ArgumentException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
-        }
-
-        [DataTestMethod]
-        [DataRow(TableName, IdentityScope.Group, " ")]
-        public void RevokeAccessForUserSecurityIdendityMissing(string tableName, IdentityScope scope, string identityName)
-        {
-            var identity = new SecurityIdentity(scope, identityName);
             Assert.ThrowsException<ArgumentException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
         }
 

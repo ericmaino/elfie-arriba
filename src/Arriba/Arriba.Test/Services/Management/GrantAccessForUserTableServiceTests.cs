@@ -26,14 +26,6 @@ namespace Arriba.Test.Services
         }
 
         [DataTestMethod]
-        [DataRow(TableName, IdentityScope.Group, " ")]
-        public void GrantAccessForUserSecurityIdendityMissing(string tableName, IdentityScope scope, string identityName)
-        {
-            var identity = new SecurityIdentity(scope, identityName);
-            Assert.ThrowsException<ArgumentException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
-        }
-
-        [DataTestMethod]
         [DataRow(TableName)]
         public void GrantAccessForUserUnauthorizedUser(string tableName)
         {
