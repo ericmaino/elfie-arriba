@@ -1,12 +1,13 @@
 ﻿    import WorkItemDetails from "../parts.optional/WorkItemDetails/WorkItemDetails";
 
+    let baseArribaUrl = window.location.protocol + "//" + window.location.host;
+
     export default {
         // Arriba Service URL to query
-        // When using NGINX as Reverse Proxy it can be setup as the frontend url plus /data
-        url: window.location.protocol + "//" + 
-             window.location.hostname + 
-             (window.location.port > 0 ? ":" + window.location.port : "" ) + 
-             "/v2",
+        // When using NGINX as Reverse Proxy it can be setup as the frontend url plus /v2 or v1 
+        url:  baseArribaUrl + "/v2",
+        
+        oauthUrl: baseArribaUrl + "/oauth/",
 
         // Name of tool to show [top right and elsewhere]
         toolName: "CSEng",

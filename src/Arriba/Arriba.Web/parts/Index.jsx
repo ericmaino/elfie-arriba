@@ -156,7 +156,7 @@ class Index extends EventedComponent {
 
     render() {
         if (this.state.blockingErrorStatus === 401) {
-            window.location.href = configuration.url + "/api/oauth"
+            window.location.href = configuration.oauthUrl;
         }
         else {
             if (this.state.blockingErrorStatus != null) return <ErrorPage status={this.state.blockingErrorStatus} />;
