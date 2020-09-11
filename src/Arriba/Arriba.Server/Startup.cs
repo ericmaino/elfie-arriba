@@ -59,7 +59,6 @@ namespace Arriba.Server
             });
 
             //Arriba Composition
-            services.AddSingleton<ISecurityConfiguration>(serverConfig);
             services.AddArribaServices(serverConfig);
         }
 
