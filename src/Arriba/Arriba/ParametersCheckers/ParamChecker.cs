@@ -1,7 +1,6 @@
-using Arriba.Model;
+﻿using Arriba.Model;
 using System;
 using System.Collections.Specialized;
-using System.Security.Principal;
 
 namespace Arriba.ParametersCheckers
 {
@@ -11,12 +10,6 @@ namespace Arriba.ParametersCheckers
         public static void ThrowIfNull<T>(this T value, string paramName) where T : class
         {
             if (value is null)
-                throw new ArgumentNullException(paramName);
-        }
-
-        public static void ThrowIfNull(this IPrincipal user, string paramName)
-        {
-            if (user is null)
                 throw new ArgumentNullException(paramName);
         }
 
