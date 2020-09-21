@@ -24,7 +24,6 @@ namespace Arriba.Communication.Application
 
         public RouteMatcher(RequestVerb verb, RouteSpecification route)
         {
-            ParamChecker.ThrowIfNull(verb, nameof(verb));
             ParamChecker.ThrowIfNull(route, nameof(route));
 
             this.Verb = verb;

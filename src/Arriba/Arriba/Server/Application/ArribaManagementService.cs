@@ -50,7 +50,7 @@ namespace Arriba.Communication.Server.Application
         public void AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user)
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(columnDetails, nameof(columnDetails));
+            columnDetails.ThrowIfNull(nameof(columnDetails));
 
             if (columnDetails.Count == 0)
                 throw new ArgumentException("Not Provided", nameof(columnDetails));
@@ -66,7 +66,7 @@ namespace Arriba.Communication.Server.Application
 
         public TableInformation CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
         {
-            ParamChecker.ThrowIfNull(createTable, nameof(createTable));
+            createTable.ThrowIfNull(nameof(createTable));
             createTable.TableName.ThrowIfNullOrWhiteSpaced(nameof(createTable));
 
             if (!_arribaAuthorization.ValidateCreateAccessForUser(user))
@@ -201,7 +201,7 @@ namespace Arriba.Communication.Server.Application
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
             _database.ThrowIfTableNotFound(tableName);
-            ParamChecker.ThrowIfNull(securityIdentity, nameof(securityIdentity));
+            securityIdentity.ThrowIfNull(nameof(securityIdentity));
             securityIdentity.Name.ThrowIfNullOrWhiteSpaced(nameof(securityIdentity.Name));
 
             if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Owner))

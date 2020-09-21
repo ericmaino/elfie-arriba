@@ -10,7 +10,7 @@ namespace Arriba.ItemConsumers
     {
         public static IItemConsumer Build(CrawlerConfiguration config)
         {
-            ParamChecker.ThrowIfNull(config, nameof(config));
+            config.ThrowIfNull(nameof(config));
 
             switch (config.ItemConsumer.ToLowerInvariant())
             {

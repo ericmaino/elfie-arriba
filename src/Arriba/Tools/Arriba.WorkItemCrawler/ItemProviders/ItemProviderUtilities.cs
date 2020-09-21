@@ -16,7 +16,7 @@ namespace Arriba.ItemProviders
 
         public static IItemProvider Build(CrawlerConfiguration config)
         {
-            ParamChecker.ThrowIfNull(config, nameof(config));
+            config.ThrowIfNull(nameof(config));
 
             switch (config.ItemProvider.ToLowerInvariant())
             {

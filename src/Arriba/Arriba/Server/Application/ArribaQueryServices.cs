@@ -125,7 +125,7 @@ namespace Arriba.Communication.Server.Application
 
         private DistinctQuery BuildDistinctFromContext(ITelemetry telemetry, NameValueCollection parameters)
         {
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            telemetry.ThrowIfNull(nameof(telemetry));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
 
             DistinctQueryTop query = new DistinctQueryTop();
@@ -146,7 +146,7 @@ namespace Arriba.Communication.Server.Application
 
         private AggregationQuery BuildAggregateFromContext(ITelemetry telemetry, NameValueCollection parameters)
         {
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            telemetry.ThrowIfNull(nameof(telemetry));
 
             string aggregationFunction = parameters["a"] ?? "count";
             string columnName = parameters["col"];
@@ -204,8 +204,8 @@ namespace Arriba.Communication.Server.Application
         private T Query<T>(string tableName, ITelemetry telemetry, IQuery<T> query, IPrincipal user)
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
-            ParamChecker.ThrowIfNull(query, nameof(query));
+            telemetry.ThrowIfNull(nameof(telemetry));
+            query.ThrowIfNull(nameof(query));
             user.ThrowIfNull(nameof(user));
             _database.ThrowIfTableNotFound(tableName);
 
@@ -231,7 +231,7 @@ namespace Arriba.Communication.Server.Application
         public SelectResult QueryTableForUser(string tableName, NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            telemetry.ThrowIfNull(nameof(telemetry));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
             user.ThrowIfNull(nameof(user));
             _database.ThrowIfTableNotFound(tableName);
@@ -280,7 +280,7 @@ namespace Arriba.Communication.Server.Application
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            telemetry.ThrowIfNull(nameof(telemetry));
             user.ThrowIfNull(nameof(user));
             _database.ThrowIfTableNotFound(tableName);
 
@@ -297,7 +297,7 @@ namespace Arriba.Communication.Server.Application
         public AggregationResult AggregateQueryTableForUser(string tableName, NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            telemetry.ThrowIfNull(nameof(telemetry));
             user.ThrowIfNull(nameof(user));
             _database.ThrowIfTableNotFound(tableName);
 
@@ -313,7 +313,7 @@ namespace Arriba.Communication.Server.Application
 
         public IntelliSenseResult IntelliSenseTableForUser(NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
         {
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            telemetry.ThrowIfNull(nameof(telemetry));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
             user.ThrowIfNull(nameof(user));
 
@@ -349,7 +349,7 @@ namespace Arriba.Communication.Server.Application
 
         public AllCountResult AllCountForUser(NameValueCollection parameters, ITelemetry telemetry, IPrincipal user)
         {
-            ParamChecker.ThrowIfNull(telemetry, nameof(telemetry));
+            telemetry.ThrowIfNull(nameof(telemetry));
             parameters.ThrowIfNullOrEmpty(nameof(parameters));
             user.ThrowIfNull(nameof(user));
 

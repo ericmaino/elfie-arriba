@@ -28,9 +28,9 @@ namespace Arriba.Server
 
         protected ArribaApplication(DatabaseFactory factory, ClaimsAuthenticationService claimsAuth, ISecurityConfiguration securityConfiguration)
         {
-            ParamChecker.ThrowIfNull(factory, nameof(factory));
-            ParamChecker.ThrowIfNull(claimsAuth, nameof(claimsAuth));
-            ParamChecker.ThrowIfNull(securityConfiguration, nameof(securityConfiguration));
+            factory.ThrowIfNull(nameof(factory));
+            claimsAuth.ThrowIfNull(nameof(claimsAuth));
+            securityConfiguration.ThrowIfNull(nameof(securityConfiguration));
 
             this.EventSource = EventPublisher.CreateEventSource(this.GetType().Name);
             this.Database = factory.GetDatabase();
@@ -243,7 +243,7 @@ namespace Arriba.Server
 
         protected IResponse ExceptionToArribaResponse(Exception ex)
         {
-            ParamChecker.ThrowIfNull(ex, nameof(ex));
+            ex.ThrowIfNull(nameof(ex));
 
             if (ex is ArribaAccessForbiddenException)
                 return ArribaResponse.Forbidden(ex.Message);
