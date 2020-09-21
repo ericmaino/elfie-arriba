@@ -76,6 +76,7 @@ namespace Arriba.Server
             app.UseArribaExceptionMiddleware();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseArribaNormalizeIdentity();
 
             app.UseEndpoints(endpoints =>
             {

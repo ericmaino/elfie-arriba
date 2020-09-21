@@ -23,6 +23,7 @@ using Arriba.Server.Authentication;
 using Arriba.Server.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Arriba.Server.Authorization;
 
 namespace Arriba.Composition
 {
@@ -46,6 +47,7 @@ namespace Arriba.Composition
             services.AddSingleton<SecureDatabase>();
             services.AddSingleton<DatabaseFactory>();
             services.AddSingleton<ICorrector, TodayCorrector>();
+            services.AddSingleton<IArribaIdentityNormalizer, ArribaIdentityNormalizer>();
 
             services.AddTransient<IRoutedApplication, ArribaImportApplication>();
             services.AddTransient<IRoutedApplication, ArribaQueryApplication>();

@@ -76,4 +76,13 @@ namespace Arriba
         public ArribaAccessForbiddenException(string message, Exception inner) : base(message, inner) { }
         protected ArribaAccessForbiddenException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
+    
+    [Serializable]
+    public class ArribaIdentityNormalizerException : ArribaException
+    {
+        public ArribaIdentityNormalizerException() { }
+        public ArribaIdentityNormalizerException(string message) : base(message) { }
+        public ArribaIdentityNormalizerException(string message, Exception inner) : base(message, inner) { }
+        protected ArribaIdentityNormalizerException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    }
 }
