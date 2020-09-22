@@ -16,5 +16,10 @@ namespace Arriba.Diagnostics.Tracing
             Console.WriteLine(message, args);
         }
 
+        public void WriteLine(string message)
+        {
+            Console.WriteLine(message);
+        }
+
     }
 }

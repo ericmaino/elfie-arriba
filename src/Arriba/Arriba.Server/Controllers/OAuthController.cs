@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Arriba.Configuration;
 using Arriba.Diagnostics.Tracing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -11,6 +12,7 @@ namespace Arriba.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class OAuthController : ControllerBase
     {
         private readonly IOAuthConfig _config;

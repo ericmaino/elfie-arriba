@@ -1,4 +1,4 @@
-﻿using Arriba.Model.Security;
+using Arriba.Model.Security;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
@@ -12,7 +12,7 @@ namespace Arriba.Test.Services
         public void RevokeAccessForUserTableNotFound(string tableName)
         {
             var identity = new SecurityIdentity(IdentityScope.Group, "table readers");
-            Assert.ThrowsException<TableNotFoundException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
+            Assert.ThrowsException<TableNotFoundException>(() => _service.RevokeAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
         }
 
         [DataTestMethod]
@@ -26,21 +26,13 @@ namespace Arriba.Test.Services
         }
 
         [DataTestMethod]
-        [DataRow(TableName, IdentityScope.Group, " ")]
-        public void RevokeAccessForUserSecurityIdendityMissing(string tableName, IdentityScope scope, string identityName)
-        {
-            var identity = new SecurityIdentity(scope, identityName);
-            Assert.ThrowsException<ArgumentException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _owner));
-        }
-
-        [DataTestMethod]
         [DataRow(TableName)]
         public void RevokeAccessForUserUnauthorizedUser(string tableName)
         {
             var identity = new SecurityIdentity(IdentityScope.Group, "table readers");
-            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _nonAuthenticatedUser));
-            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _reader));
-            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.GrantAccessForUser(tableName, identity, PermissionScope.Reader, _writer));
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.RevokeAccessForUser(tableName, identity, PermissionScope.Reader, _nonAuthenticatedUser));
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.RevokeAccessForUser(tableName, identity, PermissionScope.Reader, _reader));
+            Assert.ThrowsException<ArribaAccessForbiddenException>(() => _service.RevokeAccessForUser(tableName, identity, PermissionScope.Reader, _writer));
         }
 
         [DataTestMethod]

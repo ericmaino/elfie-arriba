@@ -11,6 +11,7 @@ using Arriba.Model.Security;
 using Arriba.ParametersCheckers;
 using Arriba.Server.Authentication;
 using Arriba.Types;
+using Arriba.Server.Hosting;
 
 namespace Arriba.Communication.Server.Application
 {
@@ -20,9 +21,9 @@ namespace Arriba.Communication.Server.Application
         private readonly IArribaAuthorization _arribaAuthorization;
         private readonly ICorrector _correctors;
 
-        public ArribaManagementService(SecureDatabase secureDatabase, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
+        public ArribaManagementService(DatabaseFactory databaseFactory, ICorrector composedCorrector, ClaimsAuthenticationService claims, ISecurityConfiguration securityConfiguration)
         {
-            _database = secureDatabase;
+            _database = databaseFactory.GetDatabase();
             _arribaAuthorization = new ArribaAuthorizationGrantDecorator(_database, claims, securityConfiguration);
             _correctors = composedCorrector;
         }
@@ -50,7 +51,7 @@ namespace Arriba.Communication.Server.Application
         public void AddColumnsToTableForUser(string tableName, IList<ColumnDetails> columnDetails, IPrincipal user)
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
-            ParamChecker.ThrowIfNull(columnDetails, nameof(columnDetails));
+            columnDetails.ThrowIfNull(nameof(columnDetails));
 
             if (columnDetails.Count == 0)
                 throw new ArgumentException("Not Provided", nameof(columnDetails));
@@ -66,7 +67,7 @@ namespace Arriba.Communication.Server.Application
 
         public TableInformation CreateTableForUser(CreateTableRequest createTable, IPrincipal user)
         {
-            ParamChecker.ThrowIfNull(createTable, nameof(createTable));
+            createTable.ThrowIfNull(nameof(createTable));
             createTable.TableName.ThrowIfNullOrWhiteSpaced(nameof(createTable));
 
             if (!_arribaAuthorization.ValidateCreateAccessForUser(user))
@@ -201,7 +202,7 @@ namespace Arriba.Communication.Server.Application
         {
             tableName.ThrowIfNullOrWhiteSpaced(nameof(tableName));
             _database.ThrowIfTableNotFound(tableName);
-            ParamChecker.ThrowIfNull(securityIdentity, nameof(securityIdentity));
+            securityIdentity.ThrowIfNull(nameof(securityIdentity));
             securityIdentity.Name.ThrowIfNullOrWhiteSpaced(nameof(securityIdentity.Name));
 
             if (!_arribaAuthorization.ValidateTableAccessForUser(tableName, user, PermissionScope.Owner))

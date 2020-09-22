@@ -59,7 +59,6 @@ namespace Arriba.Server
             });
 
             //Arriba Composition
-            services.AddSingleton<ISecurityConfiguration>(serverConfig);
             services.AddArribaServices(serverConfig);
         }
 
@@ -74,9 +73,9 @@ namespace Arriba.Server
             app.UseRouting();
             app.UseCors();
             app.UseArribaExceptionMiddleware();
-
-            if (serverConfig.EnabledAuthentication)
-                app.UseAuthorization();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.UseArribaNormalizeIdentity();
 
             app.UseEndpoints(endpoints =>
             {

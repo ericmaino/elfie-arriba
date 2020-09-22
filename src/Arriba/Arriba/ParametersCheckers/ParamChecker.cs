@@ -1,22 +1,15 @@
 ﻿using Arriba.Model;
 using System;
 using System.Collections.Specialized;
-using System.Security.Principal;
 
 namespace Arriba.ParametersCheckers
 {
 
     public static class ParamChecker
     {
-        public static void ThrowIfNull<T>(T value, string paramName)
+        public static void ThrowIfNull<T>(this T value, string paramName) where T : class
         {
-            if (value == null)
-                throw new ArgumentNullException(paramName);
-        }
-
-        public static void ThrowIfNull(this IPrincipal user, string paramName)
-        {
-            if (user is null)
+            if (value is null)
                 throw new ArgumentNullException(paramName);
         }
 
@@ -32,8 +25,7 @@ namespace Arriba.ParametersCheckers
 
         public static void ThrowIfTableNotFound(this Database db, string tableName)
         {
-            if (db == null)
-                throw new ArgumentNullException(nameof(db));
+            db.ThrowIfNull(nameof(db));
 
             if (!db.TableExists(tableName))
                 throw new TableNotFoundException($"Table {tableName} not found");
@@ -41,8 +33,7 @@ namespace Arriba.ParametersCheckers
 
         public static void ThrowIfTableAlreadyExists(this Database db, string tableName)
         {
-            if (db == null)
-                throw new ArgumentNullException(nameof(db));
+            db.ThrowIfNull(nameof(db));
 
             if (db.TableExists(tableName))
                 throw new TableAlreadyExistsException($"Table {tableName} not found");
@@ -50,7 +41,9 @@ namespace Arriba.ParametersCheckers
 
         public static void ThrowIfNullOrEmpty(this NameValueCollection value, string paramName)
         {
-            if (value == null || value.Count == 0)
+            value.ThrowIfNull(paramName);
+
+            if (value.Count == 0)
                 throw new ArgumentException("Not Provided", paramName);
         }
     }
